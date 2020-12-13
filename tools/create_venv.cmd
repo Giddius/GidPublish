@@ -14,8 +14,8 @@ REM - post_setup_scripts.txt
 REM ----------------------------------------------------------------------------------------------------
 
 
-SET PROJECT_NAME=ANTIPETROS_DISCORDBOT
-SET PROJECT_AUTHOR=ANTISTASI_TOOLS
+SET PROJECT_NAME=GIDPUBLISH
+SET PROJECT_AUTHOR=BROCAPROGS
 
 SET TOOLS_FOLDER=%~dp0
 SET WORKSPACE_FOLDER=%TOOLS_FOLDER%\..

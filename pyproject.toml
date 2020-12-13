@@ -3,9 +3,9 @@ requires = ["flit_core >=2,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.flit.metadata]
-module = "antipetros_discordbot"
+module = "gidpublish"
 author = "Giddius"
-home-page = "https://github.com/Giddius/Antipetros_Discord_Bot"
+home-page = "https://github.com/Giddius/GidPublish"
 classifiers = ["License :: OSI Approved :: MIT License"]
 description-file = "README.md"
 
