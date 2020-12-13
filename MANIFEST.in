@@ -1,0 +1,8 @@
+graft antipetros_discordbot
+prune antipetros_discordbot/logs
+prune json_data
+prune pickle_data
+prune sqlite_data
+prune temp
+prune antipetros_discordbot/reports
+exclude .env
