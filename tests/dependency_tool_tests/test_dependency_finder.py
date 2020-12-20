@@ -3,6 +3,7 @@ from gidpublish.utility.gidtools_functions import pathmaker, readit
 import os
 from gidpublish.dependencies_tool import DependencyFinder
 from gidpublish.utility.named_tuples import DependencyItem
+import toml
 
 
 def test_init(dep_finder, fake_top_module, fake_package_dir, this_dir):
@@ -13,8 +14,11 @@ def test_init(dep_finder, fake_top_module, fake_package_dir, this_dir):
     assert dep_finder.pypi_server.url == "https://pypi.python.org/pypi/"
     assert dep_finder.pypi_server.proxy is None
     assert dep_finder.dependencies is None
+    assert str(dep_finder) == 'DependencyFinder'
+    assert repr(dep_finder) == f"DependencyFinder({pathmaker(fake_top_module)}, {str([])}, {str([])}, {str(True)})"
+
     os.chdir(this_dir)
-    new_dep_finder = DependencyFinder(excludes=["uvloop", 'DIScord'],
+    new_dep_finder = DependencyFinder(this_dir, excludes=["uvloop", 'DIScord'],
                                       ignore_dirs=[fake_package_dir, r"C:\Program Files\Python38"],
                                       follow_links=False)
     assert new_dep_finder.target_dir == this_dir
@@ -34,6 +38,8 @@ def test_add_excludes(dep_finder):
     assert set(dep_finder.dependency_excludes) == set(['uvloop', 'discord', 'appdirs', 'weasyprint'])
     dep_finder.add_excludes(dep_finder.clear)
     assert dep_finder.dependency_excludes == []
+    with pytest.raises(TypeError):
+        dep_finder.add_excludes({'invalid': 'arg'})
 
 
 def test_add_ignore_dirs(dep_finder):
@@ -44,6 +50,8 @@ def test_add_ignore_dirs(dep_finder):
     assert set(dep_finder.ignore_dirs) == set(['c:/program files/python38', 'c:/something/one', "c:/something/two"])
     dep_finder.add_ignore_dirs(dep_finder.clear)
     assert dep_finder.ignore_dirs == []
+    with pytest.raises(TypeError):
+        dep_finder.add_ignore_dirs({'invalid': 'arg'})
 
 
 def test_set_target_dir(dep_finder, fake_top_module, this_dir):
@@ -54,7 +62,7 @@ def test_set_target_dir(dep_finder, fake_top_module, this_dir):
         dep_finder.set_target_dir(r"C:\\fantasy\\folder")
 
 
-def test_gather_dependencies(dep_finder):
+def test_gather_dependencies(dep_finder, fake_top_module):
     assert dep_finder.dependencies is None
     dep_finder.gather_dependencies()
     assert set(dep_finder.dependencies) == set([DependencyItem(name='appdirs', version='1.4.4'),
@@ -63,6 +71,18 @@ def test_gather_dependencies(dep_finder):
                                                 DependencyItem(name='gidconfig', version='0.1.4'),
                                                 DependencyItem(name='gidlogger', version='0.1.3'),
                                                 DependencyItem(name='python-dotenv', version='0.15.0')])
+    new_dep_finder = DependencyFinder()
+    assert new_dep_finder.target_dir is None
+    with pytest.raises(AttributeError):
+        new_dep_finder.gather_dependencies()
+
+    new_dep_finder.gather_dependencies(fake_top_module)
+    assert set(new_dep_finder.dependencies) == set([DependencyItem(name='appdirs', version='1.4.4'),
+                                                    DependencyItem(name='click', version='7.1.2'),
+                                                    DependencyItem(name='gidappdata', version='0.1.1'),
+                                                    DependencyItem(name='gidconfig', version='0.1.4'),
+                                                    DependencyItem(name='gidlogger', version='0.1.3'),
+                                                    DependencyItem(name='python-dotenv', version='0.15.0')])
 
 
 def test_as_stringlist(dep_finder):
@@ -138,3 +158,27 @@ def test_to_requirements_file(dep_finder, temp_requirement_file):
     assert set(readit(temp_requirement_file).splitlines()) == old_stringlist
     dep_finder.to_requirements_file(temp_requirement_file, overwrite=True)
     assert set(readit(temp_requirement_file).splitlines()) == set(dep_finder.as_stringlist)
+
+
+def test_to_pyproject_file(dep_finder, fake_pyproject_file):
+    pyproject_file, pyproject_string = fake_pyproject_file
+    assert toml.load(pyproject_file)['tool']['flit']['metadata']['requires'] == []
+    assert readit(pyproject_file) == pyproject_string
+
+    dep_finder.to_pyproject_file(pyproject_file=pyproject_file, spec_format='flit')
+    assert set(toml.load(pyproject_file)['tool']['flit']['metadata']['requires']) == set(['appdirs==1.4.4',
+                                                                                          'click==7.1.2',
+                                                                                          'gidappdata==0.1.1',
+                                                                                          'gidconfig==0.1.4',
+                                                                                          'gidlogger==0.1.3',
+                                                                                          'python-dotenv==0.15.0'])
+    with pytest.raises(KeyError):
+        dep_finder.to_pyproject_file(pyproject_file=pyproject_file, spec_format='invalid_format')
+
+
+def test_set_pypi_server(dep_finder):
+    assert dep_finder.pypi_server.url == "https://pypi.python.org/pypi/"
+    assert dep_finder.pypi_server.proxy is None
+    dep_finder.set_pypi_server('new_url', None)
+    assert dep_finder.pypi_server.url == "new_url"
+    assert dep_finder.pypi_server.proxy is None

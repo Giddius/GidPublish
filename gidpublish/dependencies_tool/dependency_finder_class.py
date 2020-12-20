@@ -69,6 +69,8 @@ from gidpublish.utility.named_tuples import DependencyItem, PipServerInfo
 
 # region [TODO]
 
+# TODO: Documentation!!!!
+
 
 # endregion [TODO]
 
@@ -122,6 +124,9 @@ class DependencyFinder:
             self.gather_dependencies()
         return [item for item in self.dependencies if item.name.casefold() not in self.dependency_excludes]
 
+    def set_pypi_server(self, url, proxy):
+        self.pypi_server = self.pip_info_item(url=url, proxy=proxy)
+
     def add_excludes(self, exclude):
         if isinstance(exclude, str):
             self.dependency_excludes.append(exclude.casefold())
@@ -148,7 +153,9 @@ class DependencyFinder:
         return [self.dependency_item(**item) for item in imports]
 
     def set_target_dir(self, target_dir):
-        target_dir = pathmaker(target_dir) if target_dir is not None else pathmaker(os.getcwd())
+        if target_dir is None:
+            return
+        target_dir = pathmaker(target_dir)
         if os.path.exists(target_dir) is False:
             raise FileExistsError(f'argument "target_dir"("{target_dir}"), does not point to an existing directory')
         self.target_dir = target_dir
@@ -156,6 +163,9 @@ class DependencyFinder:
     def gather_dependencies(self, target_dir=None):
         if target_dir is not None:
             self.set_target_dir(target_dir)
+        if self.target_dir is None:
+            # TODO: make custom errors
+            raise AttributeError('no "target_dir" set')
         candidates = pipreqs.get_all_imports(self.target_dir,
                                              encoding=None,
                                              extra_ignore_dirs=self.ignore_dirs,
@@ -200,13 +210,11 @@ class DependencyFinder:
         return self.__class__.__name__
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({str(self.target_dir)},{str(self.dependency_excludes)}, {str(self.ignore_dirs)}, {str(self.follow_links)})"
+        return f"{self.__class__.__name__}({str(self.target_dir)}, {str(self.dependency_excludes)}, {str(self.ignore_dirs)}, {str(self.follow_links)})"
 
 
 # region[Main_Exec]
 if __name__ == '__main__':
-    x = DependencyFinder(r"D:\Dropbox\hobby\Modding\Programs\Github\My_Repos\GidPublish\tests\fake_package\fake_gidappdata")
-    x.gather_dependencies()
-    pprint(x.as_stringlist)
+    pass
 
 # endregion[Main_Exec]
