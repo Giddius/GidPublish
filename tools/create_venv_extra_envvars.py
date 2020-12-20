@@ -36,7 +36,7 @@ def create_project_meta_env_file():
     _workspacedirbatch = os.getcwd()
     _toplevelmodule = os.path.join(_workspacedirbatch, PROJECT_NAME)
     _main_script_file = os.path.join(_toplevelmodule, '__main__.py')
-    with open(r"project_meta_data.env", 'w') as envfile:
+    with open(os.path.join(_toplevelmodule, "project_meta_data.env"), 'w') as envfile:
         envfile.write(f'PROJECT_NAME={PROJECT_NAME}\n')
         envfile.write(f'PROJECT_AUTHOR={PROJECT_AUTHOR}\n')
 

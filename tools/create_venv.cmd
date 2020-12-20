@@ -97,21 +97,21 @@ ECHO.
 ECHO.
 
 ECHO ################# Installing Setuptools
-CALL pip install --upgrade --pre setuptools
+CALL pip install --no-cache-dir --upgrade setuptools
 ECHO.
 
 ECHO ################# Installing wheel
-CALL pip install --upgrade --pre wheel
+CALL pip install --no-cache-dir --upgrade wheel
 ECHO.
 
 ECHO ################# Installing python-dotenv
-CALL pip install --upgrade --pre python-dotenv
+CALL pip install --no-cache-dir --upgrade python-dotenv
 ECHO.
 
 
 
 ECHO ################# Installing flit
-CALL pip install --no-cache-dir --upgrade --pre flit
+CALL pip install --no-cache-dir --upgrade flit
 ECHO.
 
 ECHO.
@@ -192,7 +192,7 @@ FOR /F "tokens=1 delims=," %%A in (.\venv_setup_settings\required_dev.txt) do (
 ECHO.
 ECHO -------------------------- Installing %%A --------------^>
 ECHO.
-CALL pip install --no-cache-dir --upgrade --pre %%A
+CALL pip install --no-cache-dir --upgrade %%A
 ECHO.
 )
 

@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [tool.flit.metadata]
 module = "gidpublish"
-author = "Giddius"
+author = "BrocaProgs"
 home-page = "https://github.com/Giddius/GidPublish"
 classifiers = ["License :: OSI Approved :: MIT License"]
 description-file = "README.md"

@@ -1,0 +1,3 @@
+graft gidappdata
+include LICENSE
+include readme.md

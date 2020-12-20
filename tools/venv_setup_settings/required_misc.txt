@@ -10,3 +10,6 @@ url-normalize
 watchgod
 weasyprint
 pdfkit
+gidappdata
+gidconfig
+gidlogger
