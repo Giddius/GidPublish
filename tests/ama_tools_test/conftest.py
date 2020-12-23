@@ -43,9 +43,7 @@ def fake_arma_repo():
 
 @pytest.fixture()
 def functions_finder(fake_arma_repo):
-    functions_hpp = find_functions_hpp(fake_arma_repo)
-    functions_folder = find_functions_folder(fake_arma_repo)
-    func_finder = FunctionsHppFinder(functions_folder, functions_hpp)
+    func_finder = FunctionsHppFinder(fake_arma_repo)
     yield func_finder, fake_arma_repo
 
 

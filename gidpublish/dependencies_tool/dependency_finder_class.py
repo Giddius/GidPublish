@@ -19,13 +19,13 @@ import subprocess
 from enum import Enum, Flag, auto
 from time import sleep
 from pprint import pprint, pformat
-from typing import Union, Iterable
+from typing import Union, Iterable, Tuple
 from datetime import tzinfo, datetime, timezone, timedelta
 from functools import wraps, lru_cache, singledispatch, total_ordering, partial
 from contextlib import contextmanager
 from collections import Counter, ChainMap, deque, namedtuple, defaultdict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 
 # * Third Party Imports -->
 
@@ -64,7 +64,7 @@ from gidpublish.utility.gidtools_functions import (readit, clearit, readbin, wri
                                                    dir_change, linereadit, get_pickled, ext_splitter, appendwriteit, create_folder, from_dict_to_file)
 
 from gidpublish.utility.named_tuples import DependencyItem, PipServerInfo
-
+from gidpublish.abstracts.abstract_workjob_interface import AbstractBaseWorkjob
 # endregion[Imports]
 
 # region [TODO]
@@ -97,7 +97,7 @@ class _DependencyFinderEnums(Enum):
     clear = auto()
 
 
-class DependencyFinder:
+class DependencyFinder(AbstractBaseWorkjob):
     clear = _DependencyFinderEnums.clear
     dependency_item = DependencyItem
     pip_info_item = PipServerInfo
@@ -106,7 +106,7 @@ class DependencyFinder:
     def __init__(self, target_dir=None, excludes: list = None, ignore_dirs: list = None, follow_links: bool = True):
         self.target_dir = None
         self.set_target_dir(target_dir)
-
+        self.spec_format = 'flit'
         self.dependency_excludes = [excl_item.casefold() for excl_item in excludes] if excludes is not None else []
         self.ignore_dirs = [pathmaker(dir) for dir in ignore_dirs] if ignore_dirs is not None else []
         self.follow_links = follow_links
@@ -184,18 +184,18 @@ class DependencyFinder:
         content['tool']['flit']['metadata']['requires'] = self.as_stringlist
         return content
 
-    def to_pyproject_file(self, pyproject_file=None, spec_format='flit'):
-        if spec_format.casefold() not in self.valid_pyproject_specs:
-            raise KeyError(f"argument 'spec_format' ('{spec_format}') is not a valid specification, see '{str(self)}.valid_pyproject_specs' for possible specifications")
+    def to_pyproject_file(self, pyproject_file=None):
+        if self.spec_format.casefold() not in self.valid_pyproject_specs:
+            raise KeyError(f"argument 'spec_format' ('{self.spec_format}') is not a valid specification, see '{str(self)}.valid_pyproject_specs' for possible specifications")
 
         pyproject_file = pathmaker(os.path.basename(self.target_dir), 'pyproject.toml') if pyproject_file is None else pyproject_file
         pyproject_content = toml.load(pyproject_file)
-        new_content = getattr(self, f"_to_{spec_format.casefold()}_pyproject")(pyproject_content)
+        new_content = getattr(self, f"_to_{self.spec_format.casefold()}_pyproject")(pyproject_content)
         with open(pyproject_file, 'w') as pyproject_output_file:
             toml.dump(new_content, pyproject_output_file)
 
     def to_requirements_file(self, requirements_file=None, overwrite=True):
-        out_file = pathmaker(os.path.basename(self.target_dir)) if requirements_file is False else requirements_file
+        out_file = pathmaker(os.path.basename(self.target_dir)) if requirements_file is None else requirements_file
 
         if os.path.isfile(out_file) is True:
             if overwrite is False:
@@ -206,6 +206,21 @@ class DependencyFinder:
                 log.info("Requirements file('%s') already exists and overwrite is True, overwriting requirements file", out_file)
 
         writeit(out_file, '\n'.join(self.as_stringlist))
+
+    def work(self):
+        self.gather_dependencies()
+        self.to_pyproject_file()
+        self.to_requirements_file()
+        log.info('finished work of "%s"', str(self))
+
+    def add_exclusion(self, exclusion_item: Tuple[str, str]):
+        if exclusion_item[0] == 'folder':
+            self.add_ignore_dirs(exclusion_item[1])
+        elif exclusion_item[0] == 'package':
+            self.add_excludes(exclusion_item[1])
+
+    def configure(self):
+        pass
 
     def __str__(self):
         return self.__class__.__name__

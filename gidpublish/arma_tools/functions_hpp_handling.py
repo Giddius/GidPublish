@@ -64,7 +64,7 @@ from gidpublish.utility.gidtools_functions import (readit, clearit, readbin, wri
                                                    dir_change, linereadit, get_pickled, ext_splitter, appendwriteit, create_folder, from_dict_to_file)
 
 from gidpublish.utility.named_tuples import ASFunctionItem
-
+from gidpublish.abstracts.abstract_workjob_interface import AbstractBaseWorkjob
 # endregion[Imports]
 
 # region [TODO]
@@ -95,17 +95,30 @@ AS_BASE_FOLDER = pathmaker(r"D:\Dropbox\hobby\Modding\Programs\Github\Foreign_Re
 # endregion[Constants]
 
 
-class FunctionsHppFinder:
+class FunctionsHppFinder(AbstractBaseWorkjob):
     # template_env = Environment(loader=FileSystemLoader(pathmaker(THIS_FILE_DIR, 'templates')))
     template_env = Environment(loader=PackageLoader('gidpublish', 'arma_tools/templates'))
     antistasi_prefix = 'A3A'
     replacement_table = {}
 
-    def __init__(self, functions_folder, functions_hpp_file, exclude: list = None):
-        self.functions_folder = pathmaker(functions_folder)
-        self.functions_hpp_file = pathmaker(functions_hpp_file)
+    def __init__(self, base_folder, exclude: list = None):
+        self.base_folder = pathmaker(base_folder)
+        self.functions_folder = self._find_functions_folder()
+        self.functions_hpp_file = self._find_functions_hpp_file()
         self.exclude = [item.casefold() for item in exclude] if exclude is not None else []
         self.found_functions = None
+
+    def _find_functions_folder(self):
+        for dirname, folderlist, filelist in os.walk(self.base_folder):
+            for folder in folderlist:
+                if folder.casefold() == 'functions':
+                    return pathmaker(dirname, folder)
+
+    def _find_functions_hpp_file(self):
+        for dirname, folderlist, filelist in os.walk(self.base_folder):
+            for file in filelist:
+                if file.casefold() == 'functions.hpp':
+                    return pathmaker(dirname, file)
 
     def _sort_found_functions(self):
         pass
@@ -126,7 +139,7 @@ class FunctionsHppFinder:
 
                         self.found_functions[top_folder.name].append(ASFunctionItem(function_file.name, path, class_name, function_name))
 
-    def write(self):
+    def write(self, as_string=False):
         if self.found_functions is None:
             self.collect_functions()
         template = self.template_env.get_template('functions.hpp.jinja')
@@ -137,7 +150,23 @@ class FunctionsHppFinder:
                 if f"class {key} " + "{};" in line:
                     line = f"\n{value}\n{line}"
             _mod_lines.append(line)
-        writeit(self.functions_hpp_file, '\n'.join(_mod_lines))
+        if as_string is False:
+            writeit(self.functions_hpp_file, '\n'.join(_mod_lines))
+        else:
+            return '\n'.join(_mod_lines)
+
+    def work(self):
+        self.write()
+        log.info('finished work of "%s"', str(self))
+
+    def add_exclusion(self, exclusion_item):
+        self.exclude.append(exclusion_item.casefold())
+
+    def configure(self):
+        pass
+
+    def __str__(self):
+        return self.write(as_string=True)
 
 
 # region[Main_Exec]

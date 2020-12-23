@@ -23,7 +23,8 @@ from functools import wraps, lru_cache, singledispatch, total_ordering, partial
 from contextlib import contextmanager
 from collections import Counter, ChainMap, deque, namedtuple, defaultdict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
+from abc import ABC, abstractmethod
 
 # * Third Party Imports -->
 
@@ -38,18 +39,6 @@ from jinja2 import BaseLoader, Environment, FileSystemLoader
 # from fuzzywuzzy import fuzz, process
 from pipreqs import pipreqs
 import toml
-
-# * PyQt5 Imports -->
-
-# from PyQt5.QtGui import QFont, QIcon, QBrush, QColor, QCursor, QPixmap, QStandardItem, QRegExpValidator
-# from PyQt5.QtCore import (Qt, QRect, QSize, QObject, QRegExp, QThread, QMetaObject, QCoreApplication,
-#                           QFileSystemWatcher, QPropertyAnimation, QAbstractTableModel, pyqtSlot, pyqtSignal)
-# from PyQt5.QtWidgets import (QMenu, QFrame, QLabel, QDialog, QLayout, QWidget, QWizard, QMenuBar, QSpinBox, QCheckBox, QComboBox,
-#                              QGroupBox, QLineEdit, QListView, QCompleter, QStatusBar, QTableView, QTabWidget, QDockWidget, QFileDialog,
-#                              QFormLayout, QGridLayout, QHBoxLayout, QHeaderView, QListWidget, QMainWindow, QMessageBox, QPushButton,
-#                              QSizePolicy, QSpacerItem, QToolButton, QVBoxLayout, QWizardPage, QApplication, QButtonGroup, QRadioButton,
-#                              QFontComboBox, QStackedWidget, QListWidgetItem, QTreeWidgetItem, QDialogButtonBox, QAbstractItemView,
-#                              QCommandLinkButton, QAbstractScrollArea, QGraphicsOpacityEffect, QTreeWidgetItemIterator, QAction, QSystemTrayIcon)
 
 
 # * Gid Imports -->
@@ -81,13 +70,24 @@ log.info(glog.imported(__name__))
 
 # endregion[Logging]
 
-# region [Constants]
 
+class AbstractBaseWorkjob(ABC):
 
-# endregion[Constants]
+    @abstractmethod
+    def configure(self):
+        ...
 
+    @abstractmethod
+    def work(self):
+        ...
+
+    @abstractmethod
+    def add_exclusion(self, exclusion_item):
+        ...
 
 # region[Main_Exec]
+
+
 if __name__ == '__main__':
     pass
 

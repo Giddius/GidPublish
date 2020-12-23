@@ -165,7 +165,7 @@ def test_to_pyproject_file(dep_finder, fake_pyproject_file):
     assert toml.load(pyproject_file)['tool']['flit']['metadata']['requires'] == []
     assert readit(pyproject_file) == pyproject_string
 
-    dep_finder.to_pyproject_file(pyproject_file=pyproject_file, spec_format='flit')
+    dep_finder.to_pyproject_file(pyproject_file=pyproject_file)
     assert set(toml.load(pyproject_file)['tool']['flit']['metadata']['requires']) == set(['appdirs==1.4.4',
                                                                                           'click==7.1.2',
                                                                                           'gidappdata==0.1.1',
@@ -173,7 +173,8 @@ def test_to_pyproject_file(dep_finder, fake_pyproject_file):
                                                                                           'gidlogger==0.1.3',
                                                                                           'python-dotenv==0.15.0'])
     with pytest.raises(KeyError):
-        dep_finder.to_pyproject_file(pyproject_file=pyproject_file, spec_format='invalid_format')
+        dep_finder.spec_format = 'invalid_format'
+        dep_finder.to_pyproject_file(pyproject_file=pyproject_file)
 
 
 def test_set_pypi_server(dep_finder):
