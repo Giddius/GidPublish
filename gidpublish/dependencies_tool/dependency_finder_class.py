@@ -106,6 +106,7 @@ class DependencyFinder:
     def __init__(self, target_dir=None, excludes: list = None, ignore_dirs: list = None, follow_links: bool = True):
         self.target_dir = None
         self.set_target_dir(target_dir)
+
         self.dependency_excludes = [excl_item.casefold() for excl_item in excludes] if excludes is not None else []
         self.ignore_dirs = [pathmaker(dir) for dir in ignore_dirs] if ignore_dirs is not None else []
         self.follow_links = follow_links

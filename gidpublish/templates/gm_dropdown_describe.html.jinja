@@ -1,0 +1,9 @@
+<details><summary>{{ in_object.name }}</summary><blockquote>
+
+{% for item in in_object.items %}
+- {{ item.name }}
+
+{{ item.description | indent(4,True)}}
+
+{% endfor %}
+</blockquote></details>

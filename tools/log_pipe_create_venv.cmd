@@ -11,5 +11,5 @@ mkdir %LOG_FOLDER%
 pushd %OLDHOME_FOLDER%
 
 call create_venv.cmd 2> "%LOG_FOLDER%\create_venv.errors" | TEE "%LOG_FOLDER%\create_venv.log"
-call create_venv.cmd > "%LOG_FOLDER%\create_venv_overall.log" 2>&1
+rem call create_venv.cmd > "%LOG_FOLDER%\create_venv_overall.log" 2>&1
 

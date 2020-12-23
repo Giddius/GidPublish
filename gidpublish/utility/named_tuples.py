@@ -61,7 +61,12 @@ log.info(glog.imported(__name__))
 
 DependencyItem = namedtuple("DependencyItem", ['name', 'version'])
 PipServerInfo = namedtuple("PipServerInfo", ['url', 'proxy'], defaults=(None,))
-
+FreezeItem = namedtuple("FreezeItem", ['name', 'data', "is_github", "is_personal"], defaults=(False, False))
+ASFunctionItem = namedtuple("ASFunctionItem", ['file_name', 'file_path', 'class_name', 'function_name'], defaults=(None, None))
+SyntaxHighlightingLanguage = namedtuple("SyntaxHighlightingLanguage", ['name', 'aliases', 'group', 'extensions', 'type'], defaults=(None, None, None))
+TemplateItem = namedtuple("TemplateItem", ['template', 'info'])
+TemplateMetaInfoItem = namedtuple('TemplateMetaInfoItem', ['name', 'file_name', 'source', 'vars'])
+DropdownItem = namedtuple('DropdownItem', ['name', 'description', 'code', 'sub_dropdown'], defaults=(None, None, None))
 
 # region[Main_Exec]
 
