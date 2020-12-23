@@ -1,0 +1,21 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "fake_gidappdata"
+author = "Giddius"
+home-page = "https://github.com/Giddius/GidAppData"
+classifiers = ["License :: OSI Approved :: MIT License"]
+description-file = "readme.md"
+requires = [
+    "click>=7.1.2",
+    "appdirs>=1.4.4",
+    "gidconfig>=0.1.4",
+    "gidlogger>=0.1.3",
+    "python-dotenv>=0.15.0"
+]
+
+[tool.flit.scripts]
+appdata_binit = "gidappdata.cli.pack_and_bin_and_py_data:cli_generate_user_data_binfile"
+appdata_provide = "gidappdata.cli.create_datapack_skeleton:cli"

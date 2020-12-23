@@ -99,11 +99,7 @@ class FunctionsHppFinder:
     # template_env = Environment(loader=FileSystemLoader(pathmaker(THIS_FILE_DIR, 'templates')))
     template_env = Environment(loader=PackageLoader('gidpublish', 'arma_tools/templates'))
     antistasi_prefix = 'A3A'
-    replacement_table = {'cityinfo': '		//Other initialisation functions (generally called by the above)',
-                         'initServer': '		//Main initialisation functions.',
-                         'findPath': '		//Public API - Call these from anywhere',
-                         'calculateH': '		//Private API - Do NOT call these elsewhere',
-                         }
+    replacement_table = {}
 
     def __init__(self, functions_folder, functions_hpp_file, exclude: list = None):
         self.functions_folder = pathmaker(functions_folder)
@@ -146,6 +142,7 @@ class FunctionsHppFinder:
 
 # region[Main_Exec]
 if __name__ == '__main__':
-    x = FunctionsHppFinder(r"D:\Dropbox\hobby\Modding\Programs\Github\Foreign_Repos\A3-Antistasi\A3-Antistasi\functions", r"D:\Dropbox\hobby\Modding\Programs\Github\Foreign_Repos\A3-Antistasi\A3-Antistasi\functions.hpp")
-    x.write()
+    c = FunctionsHppFinder(pathmaker(AS_BASE_FOLDER, 'functions'), pathmaker(AS_BASE_FOLDER, 'functions.hpp'))
+    c.collect_functions()
+    c.write()
 # endregion[Main_Exec]

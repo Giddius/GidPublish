@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 
 
 THIS_FILE_DIR = os.path.abspath(os.path.dirname(__file__))
-FAKE_PACKAGE_DIR = pathmaker(THIS_FILE_DIR, 'fake_package')
+FAKE_PACKAGE_DIR = pathmaker(THIS_FILE_DIR, '../fake_package')
 FAKE_PACKAGE_TOP_MODULE = pathmaker(FAKE_PACKAGE_DIR, 'fake_gidappdata')
 
 FAKE_PYPROJECT_STRING = """[build-system]
