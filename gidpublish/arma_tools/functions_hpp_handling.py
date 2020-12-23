@@ -142,7 +142,5 @@ class FunctionsHppFinder:
 
 # region[Main_Exec]
 if __name__ == '__main__':
-    c = FunctionsHppFinder(pathmaker(AS_BASE_FOLDER, 'functions'), pathmaker(AS_BASE_FOLDER, 'functions.hpp'))
-    c.collect_functions()
-    c.write()
+    pass
 # endregion[Main_Exec]
