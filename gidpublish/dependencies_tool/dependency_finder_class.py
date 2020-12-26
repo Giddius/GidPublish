@@ -98,6 +98,8 @@ class _DependencyFinderEnums(Enum):
 
 
 class DependencyFinder(AbstractBaseWorkjob):
+    config_section = 'dependency_finder'
+
     clear = _DependencyFinderEnums.clear
     dependency_item = DependencyItem
     pip_info_item = PipServerInfo
@@ -219,7 +221,8 @@ class DependencyFinder(AbstractBaseWorkjob):
         elif exclusion_item[0] == 'package':
             self.add_excludes(exclusion_item[1])
 
-    def configure(self):
+    @classmethod
+    def configure(cls, config):
         pass
 
     def __str__(self):
