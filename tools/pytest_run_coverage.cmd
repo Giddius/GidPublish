@@ -78,4 +78,4 @@ rem ECHO.
 rem ECHO.
 rem call pytest .\tests -v --cov=%PROJECT_NAME% --cov-report annotate:"%COVERAGE_REPORT_FOLDER%\%PROJECT_NAME%_coverage"
 
-rem call .\tools\open_coverage.cmd
+call .\tools\open_coverage.cmd

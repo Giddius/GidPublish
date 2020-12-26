@@ -38,6 +38,8 @@ def test_add_excludes(dep_finder):
     assert set(dep_finder.dependency_excludes) == set(['uvloop', 'discord', 'appdirs', 'weasyprint'])
     dep_finder.add_excludes(dep_finder.clear)
     assert dep_finder.dependency_excludes == []
+    dep_finder.add_exclusion(('package', 'uvloop'))
+    assert dep_finder.dependency_excludes == ['uvloop']
     with pytest.raises(TypeError):
         dep_finder.add_excludes({'invalid': 'arg'})
 
@@ -50,16 +52,10 @@ def test_add_ignore_dirs(dep_finder):
     assert set(dep_finder.ignore_dirs) == set(['c:/program files/python38', 'c:/something/one', "c:/something/two"])
     dep_finder.add_ignore_dirs(dep_finder.clear)
     assert dep_finder.ignore_dirs == []
+    dep_finder.add_exclusion(('folder', 'c:/program files/python38'))
+    assert dep_finder.ignore_dirs == ['c:/program files/python38']
     with pytest.raises(TypeError):
         dep_finder.add_ignore_dirs({'invalid': 'arg'})
-
-
-def test_set_target_dir(dep_finder, fake_top_module, this_dir):
-    assert dep_finder.target_dir == pathmaker(fake_top_module)
-    dep_finder.set_target_dir(this_dir)
-    assert dep_finder.target_dir == this_dir
-    with pytest.raises(FileExistsError):
-        dep_finder.set_target_dir(r"C:\\fantasy\\folder")
 
 
 def test_gather_dependencies(dep_finder, fake_top_module):
@@ -71,18 +67,18 @@ def test_gather_dependencies(dep_finder, fake_top_module):
                                                 DependencyItem(name='gidconfig', version='0.1.4'),
                                                 DependencyItem(name='gidlogger', version='0.1.3'),
                                                 DependencyItem(name='python-dotenv', version='0.15.0')])
-    new_dep_finder = DependencyFinder()
-    assert new_dep_finder.target_dir is None
-    with pytest.raises(AttributeError):
-        new_dep_finder.gather_dependencies()
 
-    new_dep_finder.gather_dependencies(fake_top_module)
-    assert set(new_dep_finder.dependencies) == set([DependencyItem(name='appdirs', version='1.4.4'),
-                                                    DependencyItem(name='click', version='7.1.2'),
-                                                    DependencyItem(name='gidappdata', version='0.1.1'),
-                                                    DependencyItem(name='gidconfig', version='0.1.4'),
-                                                    DependencyItem(name='gidlogger', version='0.1.3'),
-                                                    DependencyItem(name='python-dotenv', version='0.15.0')])
+    with pytest.raises(TypeError):
+        new_dep_finder = DependencyFinder(None)
+
+
+def test_wrong_target_dir(dep_finder):
+    with pytest.raises(TypeError):
+        new_dep_finder = DependencyFinder(None)
+    with pytest.raises(FileNotFoundError):
+        new_dep_finder = DependencyFinder('c:/fake_folder')
+    with pytest.raises(FileNotFoundError):
+        dep_finder.set_target_dir(r"C:\\fantasy\\folder")
 
 
 def test_as_stringlist(dep_finder):

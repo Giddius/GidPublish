@@ -105,7 +105,7 @@ class DependencyFinder(AbstractBaseWorkjob):
 
     valid_pyproject_specs = ['flit']
 
-    def __init__(self, target_dir=None, excludes: list = None, ignore_dirs: list = None, follow_links: bool = True):
+    def __init__(self, target_dir, excludes: list = None, ignore_dirs: list = None, follow_links: bool = True):
         self.target_dir = None
         self.set_target_dir(target_dir)
         self.spec_format = 'flit'
@@ -156,19 +156,12 @@ class DependencyFinder(AbstractBaseWorkjob):
         return [self.dependency_item(**item) for item in imports]
 
     def set_target_dir(self, target_dir):
-        if target_dir is None:
-            return
         target_dir = pathmaker(target_dir)
         if os.path.exists(target_dir) is False:
-            raise FileExistsError(f'argument "target_dir"("{target_dir}"), does not point to an existing directory')
+            raise FileNotFoundError(f'argument "target_dir"("{target_dir}"), does not point to an existing directory')
         self.target_dir = target_dir
 
-    def gather_dependencies(self, target_dir=None):
-        if target_dir is not None:
-            self.set_target_dir(target_dir)
-        if self.target_dir is None:
-            # TODO: make custom errors
-            raise AttributeError('no "target_dir" set')
+    def gather_dependencies(self):
         candidates = pipreqs.get_all_imports(self.target_dir,
                                              encoding=None,
                                              extra_ignore_dirs=self.ignore_dirs,
