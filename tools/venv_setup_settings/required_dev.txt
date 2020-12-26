@@ -1,9 +1,12 @@
 https://github.com/pyinstaller/pyinstaller/tarball/develop
-pep517
-memory-profiler
-matplotlib
-import-profiler
-objectgraph
-pipreqs
-pydeps
+pep517==0.9.1
+memory-profiler==0.58.0
+matplotlib==3.3.3
+import-profiler==0.0.3
+objectgraph==1.0.1
+pipreqs==0.4.10
+pydeps==1.9.13
 --force-reinstall numpy==1.19.3
+pyqt5-tools==5.15.2.3
+PyQt5-stubs==5.14.2.2
+pyqtdeploy==3.1.0

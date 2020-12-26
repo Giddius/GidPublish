@@ -1,0 +1,11 @@
+class {{ antistasi_prefix }}
+{{ '{' }}
+    {% for folder in found_functions %}
+    class {{ folder }}
+    {{ '{' }}
+        {% for func_item in found_functions[folder] %}
+        class {{ func_item.class_name }} {{ '{};' }}
+        {% endfor %}
+    {{ '};' }}
+    {% endfor %}
+{{ '};' }}
