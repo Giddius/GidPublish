@@ -102,7 +102,7 @@ class DependencyFinder(AbstractBaseWorkjob):
 
     clear = _DependencyFinderEnums.clear
     dependency_item = DependencyItem
-    pip_info_item = PipServerInfo
+
     valid_pyproject_specs = ['flit']
 
     def __init__(self, target_dir=None, excludes: list = None, ignore_dirs: list = None, follow_links: bool = True):
@@ -112,7 +112,7 @@ class DependencyFinder(AbstractBaseWorkjob):
         self.dependency_excludes = [excl_item.casefold() for excl_item in excludes] if excludes is not None else []
         self.ignore_dirs = [pathmaker(dir) for dir in ignore_dirs] if ignore_dirs is not None else []
         self.follow_links = follow_links
-        self.pypi_server = self.pip_info_item("https://pypi.python.org/pypi/", None)
+        self.pypi_server = PipServerInfo("https://pypi.python.org/pypi/", None)
         self.dependencies = None
 
     @property
@@ -128,7 +128,7 @@ class DependencyFinder(AbstractBaseWorkjob):
         return [item for item in self.dependencies if item.name.casefold() not in self.dependency_excludes]
 
     def set_pypi_server(self, url, proxy):
-        self.pypi_server = self.pip_info_item(url=url, proxy=proxy)
+        self.pypi_server = PipServerInfo(url=url, proxy=proxy)
 
     def add_excludes(self, exclude):
         if isinstance(exclude, str):
