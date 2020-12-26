@@ -23,3 +23,15 @@ def test_write(functions_finder, written_functions_hpp):
     assert readit(func_holder.functions_hpp_file) == ''
     func_holder.write()
     assert readit(func_holder.functions_hpp_file) == written_functions_hpp
+
+
+def test_strings(functions_finder, written_functions_hpp):
+    func_holder, base_folder = functions_finder
+    assert str(func_holder) == written_functions_hpp
+
+
+def test_add_exclusion_functions_finder(functions_finder):
+    func_holder, base_folder = functions_finder
+    assert func_holder.exclude == []
+    func_holder.add_exclusion('initSnowFall')
+    assert func_holder.exclude == ['initsnowfall']
