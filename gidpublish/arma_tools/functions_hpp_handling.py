@@ -97,6 +97,7 @@ AS_BASE_FOLDER = pathmaker(r"D:\Dropbox\hobby\Modding\Programs\Github\Foreign_Re
 
 
 class FunctionsHppFinder(AbstractBaseWorkjob):
+    config_section = 'functions_hpp_finder'
     template_name = 'functions'
     antistasi_prefix = 'A3A'
     replacement_table = {}
@@ -163,7 +164,8 @@ class FunctionsHppFinder(AbstractBaseWorkjob):
     def add_exclusion(self, exclusion_item):
         self.exclude.append(exclusion_item.casefold())
 
-    def configure(self):
+    @classmethod
+    def configure(cls, config):
         pass
 
     def __str__(self):

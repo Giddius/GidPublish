@@ -73,8 +73,15 @@ log.info(glog.imported(__name__))
 
 class AbstractBaseWorkjob(ABC):
 
+    @property
+    @classmethod
     @abstractmethod
-    def configure(self):
+    def config_section(cls):
+        ...
+
+    @classmethod
+    @abstractmethod
+    def configure(cls, config):
         ...
 
     @abstractmethod
