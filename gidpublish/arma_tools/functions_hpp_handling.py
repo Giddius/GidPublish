@@ -65,6 +65,7 @@ from gidpublish.utility.gidtools_functions import (readit, clearit, readbin, wri
 
 from gidpublish.utility.named_tuples import ASFunctionItem
 from gidpublish.abstracts.abstract_workjob_interface import AbstractBaseWorkjob
+from gidpublish.template_handling.template_interface import TemplateHolderPackage
 # endregion[Imports]
 
 # region [TODO]
@@ -96,12 +97,12 @@ AS_BASE_FOLDER = pathmaker(r"D:\Dropbox\hobby\Modding\Programs\Github\Foreign_Re
 
 
 class FunctionsHppFinder(AbstractBaseWorkjob):
-    # template_env = Environment(loader=FileSystemLoader(pathmaker(THIS_FILE_DIR, 'templates')))
-    template_env = Environment(loader=PackageLoader('gidpublish', 'arma_tools/templates'))
+    template_name = 'functions'
     antistasi_prefix = 'A3A'
     replacement_table = {}
 
     def __init__(self, base_folder, exclude: list = None):
+        self.template_holder = TemplateHolderPackage(os.getenv('APP_NAME'), 'templates', 'as_arma')
         self.base_folder = pathmaker(base_folder)
         self.functions_folder = self._find_functions_folder()
         self.functions_hpp_file = self._find_functions_hpp_file()
@@ -142,7 +143,7 @@ class FunctionsHppFinder(AbstractBaseWorkjob):
     def write(self, as_string=False):
         if self.found_functions is None:
             self.collect_functions()
-        template = self.template_env.get_template('functions.hpp.jinja')
+        template = getattr(self.template_holder, self.template_name).template
         content = template.render(antistasi_prefix=self.antistasi_prefix, found_functions=self.found_functions)
         _mod_lines = []
         for line in content.splitlines():

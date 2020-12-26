@@ -69,6 +69,7 @@ from gidpublish.make_readme_tool.markdown_parts.basic.block_formatting import Co
 from gidpublish.make_readme_tool.markdown_parts.support.available_syntax_highlighting import LanguageHolder
 from gidpublish.utility.named_tuples import SyntaxHighlightingLanguage, DropdownItem
 from gidpublish.template_handling.template_interface import TemplateHolderPackage
+from gidpublish.utility.enums import Usage
 
 
 # endregion[Imports]
@@ -90,29 +91,42 @@ log.info(glog.imported(__name__))
 
 # endregion[Logging]
 
-CodeBlock_Readme = partial(CodeBlock, indent=1)
+
+def readme_bold(text):
+    return f"<b>{text}</b>"
 
 
-def title_bold(title):
-    return f"<b>{title}</b>"
+def non_mod(text):
+    return text
 
 
 class DropdownList:
     default_template_name = 'basic'
     content_item = DropdownItem
+    usage_dict = {Usage.Readme: {'code_block': partial(CodeBlock, indent=1), 'bold': readme_bold}}
 
-    def __init__(self, name, items=None):
+    def __init__(self, name, usage: Usage = Usage.Readme, items=None):
         self.template_holder = TemplateHolderPackage(os.getenv('APP_NAME'), 'templates', 'gm_dropdown')
-        self.name = name
+        self._name = name
+        self.usage = usage
         self.items = [] if items is None else items
         self.title_mod = None
         self.item_mods = {}
         self.general_indent = 0
         self.item_indent = 0
+        self.list_marker = '->'
         self._active_template_name = None
 
-    def __getattr__(self, name):
-        return getattr(self.template_holder, name)
+    @property
+    def name(self):
+        name = self._name
+        if self.title_mod is not None:
+            name = self.usage_items.get(self.title_mod, non_mod)(name)
+        return name
+
+    @property
+    def usage_items(self):
+        return self.usage_dict.get(self.usage, {})
 
     @property
     def active_template_name(self):
@@ -122,7 +136,7 @@ class DropdownList:
 
     @active_template_name.setter
     def active_template_name(self, name):
-        if name not in self.available_templates:
+        if name not in self.template_holder.available_templates:
             raise AttributeError(f"template with name '{name}' not found")
         self._active_template_name = name
 
@@ -132,10 +146,12 @@ class DropdownList:
 
     @property
     def active_template(self):
-        return getattr(self, self.active_template_name)
+        return getattr(self.template_holder, self.active_template_name)
 
-    def add_item(self, name, **kwargs):
-        self.items.append(self.content_item(name=str(name), **kwargs))
+    def add_item(self, name, description=None, code=None, sub_dropdown=None):
+        if code is not None:
+            code = self.usage_items.get("code_block", None)(code)
+        self.items.append(self.content_item(name=str(name), description=description, code=code, sub_dropdown=sub_dropdown))
 
     def _wrap_items(self):
         _mod_items = []
@@ -148,13 +164,8 @@ class DropdownList:
 
         self.items = _mod_items
 
-        if self.title_mod is not None:
-            self.name = self.title_mod(self.name)
-
     def __str__(self):
         self._wrap_items()
-        for xx in self.items:
-            print(xx.description)
         return self.active_template.template.render(in_object=self)
 
 

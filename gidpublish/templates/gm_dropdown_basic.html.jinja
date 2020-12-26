@@ -1,7 +1,7 @@
 <details><summary>{{ in_object.name }}</summary><blockquote>
 
 {% for item in in_object.items %}
-- > {{ item.name }}
+{{ in_object.list_marker }} {{ item.name }}
 
 {% endfor %}
 </blockquote></details>
