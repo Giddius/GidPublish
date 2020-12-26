@@ -33,7 +33,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import gidlogger as glog
 
 # * Local Imports -->
-
+from gidpublish.utility.enums import VenvSettingFileTypus
 
 # endregion[Imports]
 
@@ -67,7 +67,7 @@ SyntaxHighlightingLanguage = namedtuple("SyntaxHighlightingLanguage", ['name', '
 TemplateItem = namedtuple("TemplateItem", ['template', 'info'])
 TemplateMetaInfoItem = namedtuple('TemplateMetaInfoItem', ['name', 'file_name', 'source', 'vars'])
 DropdownItem = namedtuple('DropdownItem', ['name', 'description', 'code', 'sub_dropdown'], defaults=(None, None, None))
-
+VenvSettingsFileItem = namedtuple('VenvSettingsFileItem', ['name', 'path', 'content', 'typus'], defaults=(VenvSettingFileTypus.Normal,))
 # region[Main_Exec]
 
 if __name__ == '__main__':

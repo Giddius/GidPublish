@@ -613,3 +613,4 @@ quick_test.txt
 **/data_storage/images/
 /tools/_project_devmeta.env
 /pytest_coverage/gidpublish_coverage_html
+/tests/fake_package

@@ -80,7 +80,7 @@ CALL %WORKSPACE_FOLDER%\.venv\Scripts\activate.bat
 ECHO.
 
 ECHO ################# upgrading pip to get rid of stupid warning
-CALL get-pip.py
+call python -m ensurepip --upgrade
 ECHO.
 
 ECHO.

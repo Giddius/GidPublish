@@ -25,7 +25,7 @@ from functools import wraps, lru_cache, singledispatch, total_ordering, partial
 from contextlib import contextmanager
 from collections import Counter, ChainMap, deque, namedtuple, defaultdict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 import psutil
 # * Third Party Imports -->
 

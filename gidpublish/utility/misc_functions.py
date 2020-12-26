@@ -14,13 +14,13 @@ import json
 import lzma
 import time
 import queue
-
+import logging
 import platform
 import subprocess
 from enum import Enum, Flag, auto
 from time import sleep
 from pprint import pprint, pformat
-from typing import Union
+from typing import Union, Callable, Iterable
 from datetime import tzinfo, datetime, timezone, timedelta
 from functools import wraps, lru_cache, singledispatch, total_ordering, partial
 from contextlib import contextmanager
@@ -88,25 +88,16 @@ log.info(glog.imported(__name__))
 
 # endregion[Constants]
 
-class Usage(Enum):
-    Readme = auto()
 
+def remove_unnecessary_lines(in_text: str, remove_filters: Iterable[Callable]):  # sourcery skip: list-comprehension
+    _out = []
+    for line in in_text.strip().splitlines():
+        if line != '' and all(filter_func(line) for filter_func in remove_filters):
+            _out.append(line)
+    return '\n'.join(_out)
 
-class CmdReturn(Enum):
-    Stdout = 'stdout'
-    Stderr = 'stderr'
-    Null = None
-
-
-class VenvSettingFileTypus(Enum):
-    Normal = auto()
-    SetupScript = auto()
-    FromGithub = auto()
-    Personal = auto()
-    Dev = auto()
 
 # region[Main_Exec]
-
 
 if __name__ == '__main__':
     pass
