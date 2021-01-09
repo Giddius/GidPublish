@@ -40,6 +40,7 @@ from collections.abc import Iterator
 # from fuzzywuzzy import fuzz, process
 from pipreqs import pipreqs
 import toml
+import click
 
 # * PyQt5 Imports -->
 
@@ -65,6 +66,8 @@ from gidpublish.utility.gidtools_functions import (readit, clearit, readbin, wri
 
 from gidpublish.utility.named_tuples import DependencyItem, PipServerInfo
 from gidpublish.abstracts.abstract_workjob_interface import AbstractBaseWorkjob
+from gidpublish.utility.misc_functions import remove_unnecessary_lines, find_file
+from gidpublish.data.general_exclusions import GENERAL_FIXED_EXCLUDE_FOLDERS
 # endregion[Imports]
 
 # region [TODO]
@@ -88,7 +91,6 @@ log.info(glog.imported(__name__))
 
 # region [Constants]
 
-THIS_FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # endregion[Constants]
 
@@ -98,6 +100,7 @@ class _DependencyFinderEnums(Enum):
 
 
 class DependencyFinder(AbstractBaseWorkjob):
+    fixed_excludes = GENERAL_FIXED_EXCLUDE_FOLDERS
     config_section = 'dependency_finder'
 
     clear = _DependencyFinderEnums.clear
@@ -183,15 +186,18 @@ class DependencyFinder(AbstractBaseWorkjob):
         if self.spec_format.casefold() not in self.valid_pyproject_specs:
             raise KeyError(f"argument 'spec_format' ('{self.spec_format}') is not a valid specification, see '{str(self)}.valid_pyproject_specs' for possible specifications")
 
-        pyproject_file = pathmaker(os.path.basename(self.target_dir), 'pyproject.toml') if pyproject_file is None else pyproject_file
+        pyproject_file = find_file(self.target_dir, 'pyproject.toml', self.fixed_excludes, 'file') if pyproject_file is None else pyproject_file
+        if pyproject_file is None:
+            raise FileNotFoundError("could not located 'pyproject.toml'")
         pyproject_content = toml.load(pyproject_file)
         new_content = getattr(self, f"_to_{self.spec_format.casefold()}_pyproject")(pyproject_content)
         with open(pyproject_file, 'w') as pyproject_output_file:
             toml.dump(new_content, pyproject_output_file)
 
     def to_requirements_file(self, requirements_file=None, overwrite=True):
-        out_file = pathmaker(os.path.basename(self.target_dir)) if requirements_file is None else requirements_file
-
+        out_file = find_file(self.target_dir, 'requirements.txt', self.fixed_excludes, 'file') if requirements_file is None else requirements_file
+        if out_file is None:
+            raise FileNotFoundError("could not located 'requirements.txt'")
         if os.path.isfile(out_file) is True:
             if overwrite is False:
                 log.warning("Requirements file ('%s') already exists and overwrite is False, aborting writing requirements file", out_file)
@@ -218,6 +224,20 @@ class DependencyFinder(AbstractBaseWorkjob):
     def configure(cls, config):
         pass
 
+    @classmethod
+    def config_entries(cls):
+        return {'dependency_finder': {'target_dir': '',
+                                      'pyproject_file': '',
+                                      'requirements_file': '',
+                                      'spec_format': 'flit',
+                                      'ignore_dirs': '',
+                                      'ignore_packages': '',
+                                      'follow_links': True}}
+
+    @classmethod
+    def extra_dependencies(cls):
+        return [('toml', 'pytoml'), ('pipreqs', None)]
+
     def __str__(self):
         return self.__class__.__name__
 
@@ -225,8 +245,11 @@ class DependencyFinder(AbstractBaseWorkjob):
         return f"{self.__class__.__name__}({str(self.target_dir)}, {str(self.dependency_excludes)}, {str(self.ignore_dirs)}, {str(self.follow_links)})"
 
 
+def register():
+    return DependencyFinder
+
+
 # region[Main_Exec]
 if __name__ == '__main__':
     pass
-
 # endregion[Main_Exec]

@@ -62,7 +62,8 @@ from gidtools.gidfiles import (QuickFile, readit, clearit, readbin, writeit, loa
 
 
 # * Local Imports -->
-
+from gidpublish.data.general_exclusions import GENERAL_FIXED_EXCLUDE_FOLDERS
+from gidpublish.utility.enums import SearchReturn
 
 # endregion[Imports]
 
@@ -97,8 +98,66 @@ def remove_unnecessary_lines(in_text: str, remove_filters: Iterable[Callable]): 
     return '\n'.join(_out)
 
 
-# region[Main_Exec]
+def find_file(in_dir, target_name: str, excluded_folder: Iterable[str] = None, target_type: str = 'file', loop_count=1):
+    max_count = 5
+    if loop_count > max_count:
+        return
 
+    for dirname, folderlist, filelist in os.walk(in_dir):
+        if all(exclude_folder.casefold() not in dirname.casefold() for exclude_folder in excluded_folder):
+            if target_type == 'file':
+                for file in filelist:
+                    if file.casefold() == target_name.casefold():
+                        return pathmaker(dirname, file)
+            elif target_type == 'folder':
+                for folder in folderlist:
+                    if folder.casefold() == target_name.casefold():
+                        return pathmaker(dirname, folder)
+    return find_file(pathmaker(in_dir, '../'), target_name, target_type, loop_count + 1)
+
+
+def search_startswith(line: str, target_string: str, case_sensitive: bool = False):
+    if case_sensitive is False:
+        line = line.casefold()
+        target_string = target_string.casefold()
+    return line.startswith(target_string)
+
+
+def search_endswith(line: str, target_string: str, case_sensitive: bool = False):
+    if case_sensitive is False:
+        line = line.casefold()
+        target_string = target_string.casefold()
+    return line.endswith(target_string)
+
+
+def search_contains(line: str, target_string: str, case_sensitive: bool = False):
+    if case_sensitive is False:
+        line = line.casefold()
+        target_string = target_string.casefold()
+    return target_string in line
+
+
+def find_in_content(start_dir, target_string: str, case_sensitive: bool = False, search_context: Callable = search_startswith, to_return: SearchReturn = SearchReturn.Both, in_loop=1):
+
+    if in_loop > 5:
+        return None
+    for dirname, folderlist, filelist in os.walk(start_dir):
+        if all(folder_exclude.casefold() not in dirname.casefold() for folder_exclude in GENERAL_FIXED_EXCLUDE_FOLDERS):
+            for file in filelist:
+                _path = pathmaker(dirname, file)
+                try:
+                    for line in readit(_path).splitlines():
+                        if search_context(line, target_string, case_sensitive) is True:
+                            if to_return is SearchReturn.Line:
+                                return line
+                            elif to_return is SearchReturn.File:
+                                return _path
+                            return (_path, line)
+                except UnicodeDecodeError:
+                    pass
+    return find_in_content(pathmaker(start_dir, '../'), target_string, case_sensitive, search_context, to_return, in_loop + 1)
+
+    # region[Main_Exec]
 if __name__ == '__main__':
     pass
 

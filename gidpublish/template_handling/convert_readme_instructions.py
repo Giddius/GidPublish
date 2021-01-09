@@ -14,7 +14,7 @@ import json
 import lzma
 import time
 import queue
-
+import logging
 import platform
 import subprocess
 from enum import Enum, Flag, auto
@@ -57,8 +57,8 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 # * Gid Imports -->
 
 import gidlogger as glog
-from gidtools.gidfiles import (QuickFile, readit, clearit, readbin, writeit, loadjson, pickleit, writebin, pathmaker, writejson,
-                               dir_change, linereadit, get_pickled, ext_splitter, appendwriteit, create_folder, from_dict_to_file)
+from gidpublish.utility.gidtools_functions import (readit, clearit, readbin, writeit, loadjson, pickleit, writebin, pathmaker, writejson,
+                                                   dir_change, linereadit, get_pickled, ext_splitter, appendwriteit, create_folder, from_dict_to_file)
 
 
 # * Local Imports -->
@@ -88,46 +88,54 @@ log.info(glog.imported(__name__))
 
 # endregion[Constants]
 
-class Usage(Enum):
-    Readme = auto()
+class InstructionsConverter:
+    instruction_file_ext = '.instruction'
+    title_regex = re.compile(r".*\((?<=level=)(?P<title_level>\d+);?\)")
 
+    def __init__(self, instruction_file):
 
-class CmdReturn(Enum):
-    Stdout = 'stdout'
-    Stderr = 'stderr'
-    Null = None
+        self.instruction_file = instruction_file
+        self._check_instruction_file()
+        self.parsed_instructions = []
 
+    @property
+    def instruction_lines(self):
+        return readit(self.instruction_file).splitlines()
 
-class VenvSettingFileTypus(Enum):
-    Normal = auto()
-    SetupScript = auto()
-    FromGithub = auto()
-    Personal = auto()
-    Dev = auto()
+    def _check_instruction_file(self):
+        if os.path.isfile(self.instruction_file) is False:
+            raise FileNotFoundError
+        if os.path.splitext(self.instruction_file)[1] != self.instruction_file_ext:
+            raise TypeError
 
+    def _parse_title(self, line):
+        regex_result = self.title_regex.search(line)
+        if regex_result:
+            title_level = regex_result.groupdict().get('title_level')
 
-class SearchReturn(Enum):
-    File = auto()
-    Line = auto()
-    Both = auto()
+    def _parse_text(self, line):
+        pass
 
+    def _parse_image(self, line):
+        pass
 
-class VersionParts(Enum):
-    Major = 0
-    Minor = 1
-    Patch = 2
+    def _parse_link(self, line):
+        pass
 
-
-class FileType(Enum):
-    Unknown = None
-    Text = '.txt'
-    Python = '.py'
-    Sqf = '.sqf'
-    Xml = '.xml'
-    Markdown = '.md'
-
+    def parse_instructions(self):
+        handle_mapping = {'title': self._parse_tile,
+                          'text': self._parse_text,
+                          'image': self._parse_image,
+                          'link': self._parse_link}
+        for line in self.instruction_lines:
+            line = line.strip()
+            for indicator, parse_function in handle_mapping.items():
+                if line.startswith(indicator):
+                    parse_function(line)
 
 # region[Main_Exec]
+
+
 if __name__ == '__main__':
     pass
 

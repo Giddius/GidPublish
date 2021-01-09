@@ -66,7 +66,8 @@ from gidpublish.abstracts.abstract_workjob_interface import AbstractBaseWorkjob
 from gidpublish.utility.named_tuples import FreezeItem, VenvSettingsFileItem
 from gidpublish.utility.enums import CmdReturn, VenvSettingFileTypus
 from gidpublish.utility.exceptions import UnknownFreezeValue
-from gidpublish.utility.misc_functions import remove_unnecessary_lines
+from gidpublish.utility.misc_functions import remove_unnecessary_lines, find_file
+from gidpublish.data.general_exclusions import GENERAL_FIXED_EXCLUDE_FOLDERS
 # endregion[Imports]
 
 # region [TODO]
@@ -106,6 +107,7 @@ def _get_settings_file_typus(in_file_name):
 
 
 class DependencyFreezer(AbstractBaseWorkjob):
+    fixed_excludes = GENERAL_FIXED_EXCLUDE_FOLDERS
     config_section = 'dependency_freezer'
     venv_activate_script_name = 'activate.bat'
     venv_settings_file_format = '.txt'
@@ -124,10 +126,10 @@ class DependencyFreezer(AbstractBaseWorkjob):
 
         self.target_dir = None
         self.set_target_dir(target_dir)
-        self.project_devmeta_env_file = self._find_file(self.target_dir, '_project_devmeta.env')
+        self.project_devmeta_env_file = find_file(self.target_dir, '_project_devmeta.env', self.fixed_excludes)
         load_dotenv(self.project_devmeta_env_file, override=True)
-        self.special_paths = {'venv_activate_script': self._find_file(self.target_dir, self.venv_activate_script_name, 'file'),
-                              'venv_settings_folder': self._find_file(self.target_dir, self.venv_settings_folder_name, 'folder'),
+        self.special_paths = {'venv_activate_script': find_file(self.target_dir, self.venv_activate_script_name, self.fixed_excludes, 'file'),
+                              'venv_settings_folder': find_file(self.target_dir, self.venv_settings_folder_name, self.fixed_excludes, 'folder'),
                               'workspace_folder': pathmaker(os.getenv('WORKSPACEDIR')),
                               'toplevel_module': pathmaker(os.getenv('TOPLEVELMODULE')),
                               'main_script_file': pathmaker(os.getenv('MAIN_SCRIPT_FILE'))}
@@ -135,6 +137,8 @@ class DependencyFreezer(AbstractBaseWorkjob):
         self._check_special_paths()
         self.version_specifier = self.default_version_specifier
         self.frozen_package_data = None
+        self.exclusions_packages = []
+        self.exclusion_filetypes = {'include_github': False, 'include_personal': False, 'include_dev': True}
 
     @property
     def venv_settings_files(self):
@@ -180,25 +184,28 @@ class DependencyFreezer(AbstractBaseWorkjob):
             line = line.strip()
             if '==' in line:
                 name, version = line.split('==')
-                self.frozen_package_data['normal'].append(FreezeItem(name, version))
+                if name.casefold() not in self.exclusions_packages:
+                    self.frozen_package_data['normal'].append(FreezeItem(name, version))
             elif '@' in line:
                 name, location = line.split(' @ ', 1)
                 if location.startswith('git+https') or location.startswith('https:'):
-                    self.frozen_package_data['git'].append(FreezeItem(name, location, is_github=True))
+                    if name.casefold() not in self.exclusions_packages:
+                        self.frozen_package_data['git'].append(FreezeItem(name, location, is_github=True))
                 elif location.startswith('file:///'):
-                    self.frozen_package_data['personal'].append(FreezeItem(name, pathmaker(location.replace('file:///', '')), is_personal=True))
+                    if name.casefold() not in self.exclusions_packages:
+                        self.frozen_package_data['personal'].append(FreezeItem(name, pathmaker(location.replace('file:///', '')), is_personal=True))
             else:
                 raise UnknownFreezeValue(line)
 
-    def freeze(self, include_github=False, include_personal=False, include_dev=True, only_print=False):
+    def freeze(self, only_print=False):
 
         execution_command = ['pip', 'freeze']
         freeze_text = self.run_std_cmd(execution_command, output_cleaner=partial(remove_unnecessary_lines, remove_filters=[lambda x: not x.startswith('#') and not x.startswith('-')]))
         self._create_package_data(freeze_text)
         exclusion_types = [VenvSettingFileTypus.SetupScript] + [item[0] for item in
-                                                                [(VenvSettingFileTypus.FromGithub, include_github),
-                                                                 (VenvSettingFileTypus.Personal, include_personal),
-                                                                 (VenvSettingFileTypus.Dev, include_dev)]
+                                                                [(VenvSettingFileTypus.FromGithub, self.exclusion_filetypes.get('include_github')),
+                                                                 (VenvSettingFileTypus.Personal, self.exclusion_filetypes.get('include_personal')),
+                                                                 (VenvSettingFileTypus.Dev, self.exclusion_filetypes.get('include_dev'))]
                                                                 if item[1] is False]
         for settings_file_item in self.venv_settings_files:
             _new_content = []
@@ -226,23 +233,6 @@ class DependencyFreezer(AbstractBaseWorkjob):
             if value is None:
                 raise FileNotFoundError(f"was not able to find '{key}'")
 
-    def _find_file(self, in_dir, target_name, target_type='file', loop_count=1):
-        max_count = 5
-        if loop_count > max_count:
-            return
-
-        for dirname, folderlist, filelist in os.walk(in_dir):
-            if 'tests' not in dirname:
-                if target_type == 'file':
-                    for file in filelist:
-                        if file.casefold() == target_name.casefold():
-                            return pathmaker(dirname, file)
-                elif target_type == 'folder':
-                    for folder in folderlist:
-                        if folder.casefold() == target_name.casefold():
-                            return pathmaker(dirname, folder)
-        return self._find_file(pathmaker(in_dir, '../'), target_name, target_type, loop_count + 1)
-
     def ensure_mandatory_files(self):
         for mandatory_file in list(self.venv_settings_mandatory_files):
             if mandatory_file not in map(lambda x: x.name, self.venv_settings_files):
@@ -261,14 +251,17 @@ class DependencyFreezer(AbstractBaseWorkjob):
         pass
 
     def work(self):
-        pass
+        self.freeze()
+        self.ensure_mandatory_files()
 
-    def add_exclusion(self, exclusion_item):
-        pass
+    def add_exclusion(self, exclusion_item: Union[str, list, tuple]):
+        if type(exclusion_item) in [list, tuple]:
+            self.exclusion_filetypes[exclusion_item[0]] = exclusion_item[1]
+        elif isinstance(exclusion_item, str):
+            self.exclusions_packages.append(exclusion_item.casefold())
 
 
 # region[Main_Exec]
 if __name__ == '__main__':
     pass
-
 # endregion[Main_Exec]

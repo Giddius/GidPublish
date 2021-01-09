@@ -92,6 +92,15 @@ class AbstractBaseWorkjob(ABC):
     def add_exclusion(self, exclusion_item):
         ...
 
+    @classmethod
+    @abstractmethod
+    def config_entries(cls):
+        ...
+
+    @classmethod
+    @abstractmethod
+    def extra_dependencies(cls):
+        ...
 # region[Main_Exec]
 
 

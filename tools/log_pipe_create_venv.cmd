@@ -11,5 +11,17 @@ mkdir %LOG_FOLDER%
 pushd %OLDHOME_FOLDER%
 
 call create_venv.cmd 2> "%LOG_FOLDER%\create_venv.errors" | TEE "%LOG_FOLDER%\create_venv.log"
-rem call create_venv.cmd > "%LOG_FOLDER%\create_venv_overall.log" 2>&1
+if %ERRORLEVEL% == 0 (
+    echo ErrorLevel is zero
+    echo.
+    echo No need to run again with combined log!!
+) else (
+   echo ErrorLevel is > 1
+   echo.
+   echo Running again with combined log to get error location
+   echo.
+   echo.
+   call create_venv.cmd > "%LOG_FOLDER%\create_venv_overall.log" 2>&1
+)
+
 

@@ -10,8 +10,10 @@ import datetime
 import configparser
 from pprint import pformat
 from contextlib import contextmanager
+from typing import Union
 import sys
-
+import re
+import logging
 # * Gid Imports -->
 import gidlogger as glog
 
@@ -20,7 +22,8 @@ import gidlogger as glog
 
 # region [Logging]
 
-log = glog.aux_logger(__name__)
+log = logging.getLogger('gidfiles')
+
 glog.import_notification(log, __name__)
 
 # endregion [Logging]
@@ -28,8 +31,18 @@ glog.import_notification(log, __name__)
 
 # region [Constants]
 
+WHITESPACE_REGEX = re.compile(r"\s+")
 
 # endregion [Constants]
+
+
+# region [Global_Functions]
+
+
+# endregion [Global_Functions]
+
+
+# region [Function_JSON]
 
 
 def loadjson(in_file):
@@ -41,6 +54,11 @@ def loadjson(in_file):
 def writejson(in_object, in_file, sort_keys=True, indent=0):
     with open(in_file, 'w') as jsonoutfile:
         json.dump(in_object, jsonoutfile, sort_keys=sort_keys, indent=indent)
+
+
+# endregion [Function_JSON]
+
+# region [Function_Hashes]
 
 
 def hash_to_solidcfg(in_file, in_name=None, in_config_loc='default'):
@@ -89,20 +107,23 @@ def ishash_same(in_file, in_name=None, in_config_loc='default'):
     return _out
 
 
-def absolute_listdir(in_dir, in_filter=None, in_filter_type=True):
-    for files in os.listdir(in_dir):
-        if in_filter is not None:
-            if in_filter_type is True:
-                if in_filter in files:
-                    yield pathmaker(in_dir, files)
-            elif in_filter_type is False:
-                if in_filter not in files:
-                    yield pathmaker(in_dir, files)
-        else:
-            yield pathmaker(in_dir, files)
+# endregion [Function_Hashes]
+
+# region [Functions_Unsorted]
 
 
+# endregion [Functions_Unsorted]
+
+# region [Functions_Delete]
+
+
+# endregion [Functions_Delete]
+
+# region [Functions_Read]
+
+# -------------------------------------------------------------- readbin -------------------------------------------------------------- #
 def readbin(in_file):
+    # -------------------------------------------------------------- readbin -------------------------------------------------------------- #
     """
     Reads a binary file.
 
@@ -153,6 +174,10 @@ def linereadit(in_file, in_encoding='utf-8', in_errors='strict'):
         _out = lineread_file.read().splitlines()
     return _out
 
+# endregion [Functions_Read]
+
+
+# region [Functions_Write]
 
 def from_dict_to_file(in_out_file, in_dict_name, in_dict):
     appendwriteit(in_out_file, '\n\n')
@@ -161,7 +186,9 @@ def from_dict_to_file(in_out_file, in_dict_name, in_dict):
     appendwriteit(in_out_file, _dict_string)
 
 
+# -------------------------------------------------------------- writebin -------------------------------------------------------------- #
 def writebin(in_file, in_data):
+    # -------------------------------------------------------------- writebin -------------------------------------------------------------- #
     """
     Writes a string to binary.
 
@@ -201,7 +228,9 @@ def appendwriteit(in_file, in_data, in_encoding='utf-8'):
         appendwrite_file.write(in_data)
 
 
+# -------------------------------------------------------------- clearit -------------------------------------------------------------- #
 def clearit(in_file):
+    # -------------------------------------------------------------- clearit -------------------------------------------------------------- #
     """
     Deletes the contents of a file.
 
@@ -213,6 +242,30 @@ def clearit(in_file):
     with open(in_file, 'w') as file_to_clear:
         file_to_clear.write('')
     log.debug(f"contents of file '{in_file}' was cleared")
+
+
+# endregion [Functions_Write]
+
+
+# region [Functions_Paths]
+
+
+def _split_path_elements(path: str):
+
+    def _typed_join(in_data: Union[str, list]):
+        if isinstance(in_data, list):
+            return os.path.join(*in_data)
+        elif isinstance(in_data, str):
+            return os.path.join(in_data)
+
+    if '\\\\' in path:
+        return _typed_join(path.split('\\\\'))
+    elif '\\' in path:
+        return _typed_join(path.split('\\'))
+    elif '/' in path:
+        return _typed_join(path.split('/'))
+    else:
+        return _typed_join(path)
 
 
 def pathmaker(first_segment, *in_path_segments, rev=False):
@@ -240,8 +293,10 @@ def pathmaker(first_segment, *in_path_segments, rev=False):
     return os.path.normpath(_path).replace(os.path.sep, '/')
 
 
+# -------------------------------------------------------------- work_in -------------------------------------------------------------- #
 @contextmanager
 def work_in(in_dir):
+    # -------------------------------------------------------------- work_in -------------------------------------------------------------- #
     """
     A context manager which changes the working directory to the given path,
     and then changes it back to its previous value on exit.
@@ -259,7 +314,9 @@ def work_in(in_dir):
     os.chdir(prev_cwd)
 
 
+# -------------------------------------------------------------- path_part_remove -------------------------------------------------------------- #
 def path_part_remove(in_file):
+    # -------------------------------------------------------------- path_part_remove -------------------------------------------------------------- #
     """
     Removes last segment of path, to get parent path.
 
@@ -282,7 +339,9 @@ def path_part_remove(in_file):
     return _out
 
 
+# -------------------------------------------------------------- dir_change -------------------------------------------------------------- #
 def dir_change(*args, in_adress_home=False, ):
+    # -------------------------------------------------------------- dir_change -------------------------------------------------------------- #
     """
     changes directory to script location or provided path.
 
@@ -299,7 +358,9 @@ def dir_change(*args, in_adress_home=False, ):
     log.debug('We are now in ' + _path_to_home)
 
 
+# -------------------------------------------------------------- get_absolute_path -------------------------------------------------------------- #
 def get_absolute_path(in_path='here', include_file=False):
+    # -------------------------------------------------------------- get_absolute_path -------------------------------------------------------------- #
     """
     Generates absolute path from relative path, optional gives it out as folder, by removing the file segment.
 
@@ -322,7 +383,14 @@ def get_absolute_path(in_path='here', include_file=False):
     return _out
 
 
+# endregion [Functions_Paths]
+
+
+# region [Functions_Names]
+
+# -------------------------------------------------------------- file_name_time -------------------------------------------------------------- #
 def file_name_time(var_sep='_', date_time_sep='-', box=('[', ']')):
+    # -------------------------------------------------------------- file_name_time -------------------------------------------------------------- #
     """
     creates a name that is the date and time.
 
@@ -378,7 +446,10 @@ def number_rename(in_file_name, in_round=1):
     return _exist_handle(_output, _new_round, _temp_path[0] + '.' + _temp_path[1])
 
 
+# -------------------------------------------------------------- cascade_rename -------------------------------------------------------------- #
+# ! check which file it uses, so it doesnt add to back ~~~
 def cascade_rename(in_file_name, in_folder, in_max_files=3):
+    # -------------------------------------------------------------- cascade_rename -------------------------------------------------------------- #
     _temp_file_dict = {}
     _name = ext_splitter(in_file_name)
     _ext = ext_splitter(in_file_name, _out='ext')
@@ -423,7 +494,9 @@ def _exist_handle(in_path, in_round, original_path):
     return _new_path
 
 
+# -------------------------------------------------------------- splitoff -------------------------------------------------------------- #
 def splitoff(in_file):
+    # -------------------------------------------------------------- splitoff -------------------------------------------------------------- #
     """splitoff, wraps os.path.dirname and os.path.basename to return both as tuple.
 
     Args:
@@ -436,7 +509,9 @@ def splitoff(in_file):
     return (os.path.dirname(_file), os.path.basename(_file))
 
 
+# -------------------------------------------------------------- timenamemaker -------------------------------------------------------------- #
 def timenamemaker(in_full_path):
+    # -------------------------------------------------------------- timenamemaker -------------------------------------------------------------- #
     """
     Creates a filename, that has the time included.
 
@@ -450,7 +525,7 @@ def timenamemaker(in_full_path):
     str
         the new file name
     """
-    _time = datetime.datetime.utcnow().strftime('_[%Y-%m-%dT%H-%M]')
+    _time = str(datetime.datetime.now()).rsplit('.', maxsplit=1)[0]
     log.debug(f"_time is [{_time}]")
     _file = splitoff(in_full_path)[1]
     _file_tup = os.path.splitext(_file)
@@ -461,7 +536,9 @@ def timenamemaker(in_full_path):
     return _out
 
 
+# -------------------------------------------------------------- ext_splitter -------------------------------------------------------------- #
 def ext_splitter(in_file, _out='file'):
+    # -------------------------------------------------------------- ext_splitter -------------------------------------------------------------- #
     """
     Splits a file name by the extension and returns either the name or the extension.
 
@@ -493,7 +570,9 @@ def ext_splitter(in_file, _out='file'):
     return _output
 
 
+# -------------------------------------------------------------- file_name_modifier -------------------------------------------------------------- #
 def file_name_modifier(in_path, in_string, pos='prefix', new_ext=None, seperator=None):
+    # -------------------------------------------------------------- file_name_modifier -------------------------------------------------------------- #
     """
     changes a file name by inserting a string.
 
@@ -540,6 +619,12 @@ def file_name_modifier(in_path, in_string, pos='prefix', new_ext=None, seperator
     return _out
 
 
+# endregion [Functions_Names]
+
+
+# region [Functions_Pickle]
+
+
 def pickleit(obj, in_path):
     """
     saves an object as pickle file.
@@ -576,8 +661,14 @@ def get_pickled(in_path):
         log.debug(f"loaded pickle file [{in_path}]")
         return pickle.load(pickletoretrieve)
 
+# endregion [Functions_Pickle]
 
+
+# region [Functions_Search]
+
+# -------------------------------------------------------------- file_walker -------------------------------------------------------------- #
 def file_walker(in_path, in_with_folders=False):
+    # -------------------------------------------------------------- file_walker -------------------------------------------------------------- #
     """
     walks recursively through a file system and returns a list of file paths.
 
@@ -602,22 +693,14 @@ def file_walker(in_path, in_with_folders=False):
     log.debug(f"finished walking [{in_path}]")
     return _out_list
 
-
-def _filter_by_fileage(file_path):
-    return os.stat(file_path).st_ctime
+# endregion [Functions_Search]
 
 
-def limit_amount_files_absolute(in_basename, in_directory, in_amount_max):
-    existing_files = []
-    for file in os.scandir(in_directory):
-        if in_basename in file.name:
-            existing_files.append(pathmaker(file.path))
-    existing_files = sorted(existing_files, key=_filter_by_fileage)
-    while len(existing_files) > in_amount_max:
-        os.remove(existing_files.pop(0))
+# region [Functions_Misc]
 
-
+# -------------------------------------------------------------- limit_amount_of_files -------------------------------------------------------------- #
 def limit_amount_of_files(in_basename, in_directory, in_amount_max):
+    # -------------------------------------------------------------- limit_amount_of_files -------------------------------------------------------------- #
     """
     limits the amount of files in a folder that have a certain basename,
 
@@ -663,9 +746,73 @@ def create_folder(in_path):
         log.info(f"Folder '{in_path}' does exist!")
 
 
+def to_attr_name(in_name):
+
+    replace_dict = {' ': '_',
+                    '-': '_',
+                    '.': '__',
+                    '/': '_',
+                    '\\': '_',
+                    '*': '',
+                    '{': '_',
+                    '}': '_',
+                    '[': '_',
+                    ']': '_',
+                    '(': '_',
+                    ')': '_',
+                    '>': '_',
+                    '<': '_',
+                    '#': '_',
+                    '+': '_',
+                    '&': '_',
+                    '$': '_',
+                    "'": '',
+                    '"': '', }
+
+    attr_name = in_name.strip()
+
+    for to_replace, replacement in replace_dict.items():
+        if to_replace in attr_name:
+            for amount in reversed(range(1, 10)):
+                if to_replace * amount in attr_name:
+
+                    attr_name = attr_name.lstrip(to_replace * amount).rstrip(to_replace * amount).replace(to_replace * amount, replacement)
+    return attr_name.casefold()
+
+
+def filename_to_attr_name(in_file, keep_ext=False):
+    attr_name = in_file
+    if os.path.sep in attr_name or '/' in attr_name:
+        attr_name = os.path.basename(attr_name)
+    if keep_ext is False:
+        attr_name = os.path.splitext(attr_name)[0]
+    return to_attr_name(attr_name)
+
+
+def get_ext(in_file):
+    extension = os.path.splitext(in_file)[-1]
+    if extension == '':
+        raise TypeError(f"file '{in_file}' has no extension.")
+    return extension.replace('.', '').strip()
+
+
+def remove_extension(in_file, keep_path=False):
+    file_name = os.path.basename(in_file) if keep_path is False else pathmaker(in_file)
+    return os.path.splitext(file_name)[0]
+
+
+def get_parent_dir(path, parent_level=1):
+    _path = pathmaker(path)
+    for _ in range(parent_level):
+        _path = pathmaker(os.path.dirname(_path))
+    return pathmaker(_path)
+
+# endregion [Functions_Misc]
+
 # region [Main_Exec]
+
+
 if __name__ == '__main__':
     pass
-
 
 # endregion [Main_Exec]

@@ -12,7 +12,7 @@ set FILEFOLDER=%~dp0
 pushd %FILEFOLDER%
 rem ----------------------------------------------------------------
 cd ..\..\tools
-echo ##################### setting vars from %cd%\_project_devmeta.env
+
 for /f %%i in (_project_devmeta.env) do set %%i
 rem ----------------------------------------------------------------
 popd
@@ -53,5 +53,5 @@ def modify_activate_bat():
 
 if __name__ == '__main__':
     create_project_devmeta_env_file()
-    create_project_meta_env_file()
+    # create_project_meta_env_file()
     modify_activate_bat()

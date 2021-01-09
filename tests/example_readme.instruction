@@ -1,0 +1,14 @@
+title(level=1)
+
+image()
+
+title(level=2)
+text()
+
+link(name=test_link)
+
+seperator()
+
+title(level=2)
+text()
+
