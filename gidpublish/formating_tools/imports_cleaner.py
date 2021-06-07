@@ -7,7 +7,7 @@
 
 # region [Imports]
 
-
+import difflib
 import gc
 import os
 import re
@@ -542,7 +542,11 @@ class ImportsCleaner(BaseTaskTooling):
             file_item.write(new_content)
 
     def apply_autoflake(self, content: str) -> str:
-        return autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
+        print("running autoflake")
+        _out = autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
+        d = difflib.Differ()
+        console.print(list(d.compare(content.splitlines(), _out.splitlines())))
+        return _out
 
     def apply_isort(self, content: str) -> str:
         return content
