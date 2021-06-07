@@ -78,8 +78,8 @@ import tomlkit
 from benedict import benedict
 from gidpublish.utility.misc import recursive_dir_tree
 from gidpublish.utility.general_decorators import debug_timing_print
-
 console = Console(soft_wrap=True)
+
 # endregion[Imports]
 
 # region [TODO]
@@ -511,9 +511,9 @@ class ImportsCleaner(BaseTaskTooling):
     def __init__(self, project) -> None:
         self.project = project
         self.import_region_name = self.project.settings.gidpublish.import_cleaner.import_region_name
-        self.extra_modifications = {self.project.settings.gidpublish.import_cleaner.use_autoflake: self.apply_autoflake,
-                                    self.project.settings.gidpublish.import_cleaner.use_isort: self.apply_isort,
-                                    self.project.settings.gidpublish.import_cleaner.use_autopep8: self.apply_autopep8}
+        self.extra_modifications = {self.apply_autoflake: self.project.settings.gidpublish.import_cleaner.use_autoflake,
+                                    self.apply_isort: self.project.settings.gidpublish.import_cleaner.use_isort,
+                                    self.apply_autopep8: self.project.settings.gidpublish.import_cleaner.use_autopep8}
 
     @cached_property
     def import_region_regex(self) -> re.Pattern:
@@ -536,20 +536,13 @@ class ImportsCleaner(BaseTaskTooling):
             import_statements = '\n'.join(line for line in imports_section_match.group('content').splitlines() if line != '' and not line.strip().startswith('#'))
             new_import_section = imports_section_match.group('startline') + '\n' + import_statements + '\n' + imports_section_match.group("endline")
             new_content = self.import_region_regex.sub(new_import_section, old_content)
-            for enabled, modification_func in self.extra_modifications.items():
-                print(modification_func.__name__)
-                print(f"enabled: {enabled}")
-                print('________________')
+            for modification_func, enabled in self.extra_modifications.items():
                 if enabled is True:
                     new_content = modification_func(new_content)
             file_item.write(new_content)
 
     def apply_autoflake(self, content: str) -> str:
-        print("running autoflake")
-        _out = autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
-        d = difflib.Differ()
-        console.print(list(d.compare(content.splitlines(), _out.splitlines())))
-        return _out
+        return autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
 
     def apply_isort(self, content: str) -> str:
         return content
