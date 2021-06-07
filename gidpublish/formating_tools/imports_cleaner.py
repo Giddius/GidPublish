@@ -6,6 +6,8 @@
 
 
 # region [Imports]
+
+
 import gc
 import os
 import re
@@ -50,17 +52,13 @@ from importlib.util import find_spec, module_from_spec, spec_from_file_location
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from importlib.machinery import SourceFileLoader
 from rich import print as rprint, inspect as rinspect
-# * Third Party Imports --------------------------------------------------------------------------------->
 import toml
 import inspect
 import isort
 import autopep8
 import autoflake
 from copy import deepcopy
-# * Gid Imports ----------------------------------------------------------------------------------------->
 import gidlogger as glog
-
-# * Local Imports --------------------------------------------------------------------------------------->
 from gidpublish.utility.file_system_walk import StartsWith, filesystem_walker_files
 from gidpublish.utility.gidtools_functions import (readit, clearit, readbin, writeit, loadjson, pickleit, writebin, pathmaker, writejson, dir_change,
                                                    linereadit, get_pickled, ext_splitter, appendwriteit, create_folder, from_dict_to_file)
@@ -80,6 +78,7 @@ import tomlkit
 from benedict import benedict
 from gidpublish.utility.misc import recursive_dir_tree
 from gidpublish.utility.general_decorators import debug_timing_print
+
 
 # endregion[Imports]
 
@@ -426,7 +425,7 @@ class ImportsCleaner(BaseTaskTooling):
         imports_section_match = self.import_region_regex.search(old_content)
         if imports_section_match:
             import_statements = '\n'.join(line for line in imports_section_match.group('content').splitlines() if line != '' and not line.strip().startswith('#'))
-            new_import_section = imports_section_match.group('startline') + 'n' + import_statements + '\n' + imports_section_match.group("endline")
+            new_import_section = imports_section_match.group('startline') + '\n\n' + import_statements + '\n\n' + imports_section_match.group("endline")
             new_content = self.import_region_regex.sub(new_import_section, old_content)
             file_item.write(new_content)
 
@@ -547,7 +546,8 @@ class ProjectData:
                     yield self.file_factory.get_item(path)
 
     def get_files_for(self, tooling_item: BaseTaskTooling):
-        print(type(tooling_item))
+        if isinstance(tooling_item, ImportsCleaner):
+            return (file for file in self.files if self.top_module_folder.path.casefold() in file.parent_folder.path.casefold() and isinstance(file, PythonFileItem))
 
     def get_settings_copy(self):
         return NotImplemented
@@ -566,6 +566,7 @@ if __name__ == '__main__':
     _root_path = r"D:\Dropbox\hobby\Modding\Programs\Github\My_Repos\GidPublish"
     x = ProjectData(_root_path)
     dd = ImportsCleaner(x)
+    dd.process_all()
 
 
 # endregion[Main_Exec]
