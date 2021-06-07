@@ -425,7 +425,7 @@ class ImportsCleaner(BaseTaskTooling):
         imports_section_match = self.import_region_regex.search(old_content)
         if imports_section_match:
             import_statements = '\n'.join(line for line in imports_section_match.group('content').splitlines() if line != '' and not line.strip().startswith('#'))
-            new_import_section = imports_section_match.group('startline') + '\n\n' + import_statements + '\n\n' + imports_section_match.group("endline")
+            new_import_section = imports_section_match.group('startline') + '\n' + import_statements + '\n' + imports_section_match.group("endline")
             new_content = self.import_region_regex.sub(new_import_section, old_content)
             file_item.write(new_content)
 
