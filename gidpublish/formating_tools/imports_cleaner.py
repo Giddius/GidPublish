@@ -537,6 +537,9 @@ class ImportsCleaner(BaseTaskTooling):
             new_import_section = imports_section_match.group('startline') + '\n' + import_statements + '\n' + imports_section_match.group("endline")
             new_content = self.import_region_regex.sub(new_import_section, old_content)
             for enabled, modification_func in self.extra_modifications.items():
+                print(modification_func.__name__)
+                print(f"enabled: {enabled}")
+                print('________________')
                 if enabled is True:
                     new_content = modification_func(new_content)
             file_item.write(new_content)
