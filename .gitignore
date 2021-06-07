@@ -614,3 +614,5 @@ quick_test.txt
 /tools/_project_devmeta.env
 /pytest_coverage/gidpublish_coverage_html
 /tests/fake_package
+/tools/scratches
+/misc/images

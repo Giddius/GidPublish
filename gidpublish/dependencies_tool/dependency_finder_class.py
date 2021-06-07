@@ -251,5 +251,8 @@ def register():
 
 # region[Main_Exec]
 if __name__ == '__main__':
-    pass
+    x = DependencyFinder(r"D:\Dropbox\hobby\Modding\Programs\Github\My_Repos\Gid_Venv\gidvenv")
+    x.gather_dependencies()
+    for i in x.as_stringlist:
+        print(i)
 # endregion[Main_Exec]

@@ -1,5 +1,8 @@
-PyQt5==5.15.2
-pyqt5-tools==5.15.2.3
-QScintilla==2.11.6
-pyqtgraph==0.11.1
-parceqt==0.13.0
+PyQt3D
+PyQt5
+PyQtChart
+PyQtDataVisualization
+PyQtWebEngine
+QScintilla
+pyopengl
+pyqtgraph

@@ -17,7 +17,7 @@ import queue
 
 import platform
 import subprocess
-from enum import Enum, Flag, auto
+from enum import Enum, Flag, auto, unique
 from time import sleep
 from pprint import pprint, pformat
 from typing import Union
@@ -26,7 +26,7 @@ from functools import wraps, lru_cache, singledispatch, total_ordering, partial
 from contextlib import contextmanager
 from collections import Counter, ChainMap, deque, namedtuple, defaultdict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-
+from functools import total_ordering
 
 # * Third Party Imports -->
 
@@ -88,6 +88,28 @@ log.info(glog.imported(__name__))
 
 # endregion[Constants]
 
+class OrderedEnum(Enum):
+    def __ge__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value >= other.value
+        return NotImplemented
+
+    def __gt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value > other.value
+        return NotImplemented
+
+    def __le__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value <= other.value
+        return NotImplemented
+
+    def __lt__(self, other):
+        if self.__class__ is other.__class__:
+            return self.value < other.value
+        return NotImplemented
+
+
 class Usage(Enum):
     Readme = auto()
 
@@ -112,10 +134,14 @@ class SearchReturn(Enum):
     Both = auto()
 
 
-class VersionParts(Enum):
-    Major = 0
-    Minor = 1
-    Patch = 2
+class VersionPart(OrderedEnum):
+    MAJOR = 2
+    MINOR = 1
+    PATCH = 0
+
+    @property
+    def attr_name(self):
+        return self._name_.casefold()
 
 
 class FileType(Enum):

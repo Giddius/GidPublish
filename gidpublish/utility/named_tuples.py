@@ -70,26 +70,11 @@ DropdownItem = namedtuple('DropdownItem', ['name', 'description', 'code', 'sub_d
 VenvSettingsFileItem = namedtuple('VenvSettingsFileItem', ['name', 'path', 'content', 'typus'], defaults=(VenvSettingFileTypus.Normal,))
 
 
-VersionHandleItem = namedtuple('VersionHandleItem', ['get_version', 'write_version'])
 CliMappingItem = namedtuple("CliMappingItem", ['typus', 'pattern', 'files'], defaults=(None, None))
 
 # subclassed namedtuples
 
-
-class VersionItem(namedtuple('VersionItem', ['major', 'minor', 'patch', 'seperator'], defaults=(None, '.'))):
-    @property
-    def cleaned_values(self):
-        _as_list = []
-        for field in self._fields:
-            if field != 'seperator' and getattr(self, field) is not None:
-                _as_list.append(getattr(self, field))
-        return _as_list
-
-    @property
-    def version_string(self):
-        return self.seperator.join(map(str, self.cleaned_values))
-
-    # region[Main_Exec]
+# region[Main_Exec]
 
 
 if __name__ == '__main__':

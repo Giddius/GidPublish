@@ -1,5 +1,0 @@
-graft gidpublish
-prune logs
-prune temp
-prune reports
-exclude .env

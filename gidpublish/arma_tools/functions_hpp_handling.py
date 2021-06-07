@@ -101,6 +101,8 @@ class FunctionsHppFinder(AbstractBaseWorkjob):
     template_name = 'functions'
     antistasi_prefix = 'A3A'
     replacement_table = {}
+    extra_dependencies = None
+    config_entries = None
 
     def __init__(self, base_folder, exclude: list = None):
         self.template_holder = TemplateHolderPackage(os.getenv('APP_NAME'), 'templates', 'as_arma')

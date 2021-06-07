@@ -60,7 +60,7 @@ import gidlogger as glog
 
 # * Local Imports -->
 
-
+from gidpublish.utility.gidtools_functions import pathmaker
 # endregion[Imports]
 
 # region [TODO]
@@ -82,6 +82,7 @@ log.info(glog.imported(__name__))
 
 # region [Constants]
 
+GIT_EXE = shutil.which('git.exe')
 
 # endregion[Constants]
 
@@ -147,6 +148,14 @@ def path_cmd(executable: str, command: list, output_handler: Callable = None, ch
 
 def find_executable(executable: str):
     return _wide_search_executable(executable_name=executable)
+
+
+def base_folder_from_git():
+    cmd = subprocess.run([GIT_EXE, "rev-parse", "--show-toplevel"], capture_output=True, text=True, shell=True, check=True)
+    base_folder = pathmaker(cmd.stdout.rstrip('\n'))
+    if os.path.isdir(base_folder) is False:
+        raise FileNotFoundError('Unable to locate main dir of project')
+    return base_folder
 
 
 # region[Main_Exec]

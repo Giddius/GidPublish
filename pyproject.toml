@@ -8,10 +8,54 @@ author = "BrocaProgs"
 home-page = "https://github.com/Giddius/GidPublish"
 classifiers = ["License :: OSI Approved :: MIT License"]
 description-file = "README.md"
-
 requires = []
 
-
+[tool.flit.sdist]
+exclude = []
 
 [tool.flit.scripts]
 
+[tool.pytest.ini_options]
+addopts = "-rP -vv --durations=0 --show-capture=all --color=auto --code-highlight=yes"
+
+[tool.gidvenv.base_venv_settings]
+system_site_packages = false
+clear = true
+symlinks = true
+with_pip = false
+# prompt=
+upgrade_deps = false
+
+[tool.gidvenv.settings]
+verbose = false
+manipulate_script = true
+pyclean_before = true
+extra_install_instructions = []
+
+[tool.autopep8]
+max-line-length = 250
+ignore = ["E402", "E501"]
+
+[tool.isort]
+line_length = 200
+sections = [
+    "FUTURE",
+    "STDLIB",
+    "THIRDPARTY",
+    "PYQT",
+    "GID",
+    "FIRSTPARTY",
+    "LOCALFOLDER",
+]
+known_pyqt = ["PyQt5"]
+known_gid = ["gidtools", "gidlogger", "gidqtutils", "gidviewmodels"]
+import_heading_stdlib = "* Standard Library Imports ---------------------------------------------------------------------------->"
+import_heading_thirdparty = "* Third Party Imports --------------------------------------------------------------------------------->"
+import_heading_firstparty = "* Local Imports --------------------------------------------------------------------------------------->"
+import_heading_pyqt = "* PyQt5 Imports --------------------------------------------------------------------------------------->"
+import_heading_gid = "* Gid Imports ----------------------------------------------------------------------------------------->"
+ensure_newline_before_comments = true
+balanced_wrapping = true
+lines_after_imports = 1
+length_sort = true
+group_by_package = true

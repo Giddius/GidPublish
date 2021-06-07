@@ -1,5 +1,5 @@
-pytest==6.2.1
-pytest-qt==3.3.0
-pytest-cov==2.10.1
-pytest-venv
+pytest
 pytest-click
+pytest-cov
+pytest-qt
+pytest-venv

@@ -18,7 +18,7 @@ import logging
 import platform
 import subprocess
 from enum import Enum, Flag, auto
-from time import sleep
+from time import sleep, time, time_ns, process_time, process_time_ns, perf_counter, perf_counter_ns
 from pprint import pprint, pformat
 from typing import Union, Callable, Iterable
 from datetime import tzinfo, datetime, timezone, timedelta
@@ -89,6 +89,22 @@ log.info(glog.imported(__name__))
 
 # endregion[Constants]
 
+def debug_timing_print(func):
+    @wraps(func)
+    def _function_print_time(*args, **kwargs):
+        start_time = perf_counter_ns()
+        _out = func(*args, **kwargs)
+
+        if len(args) != 0 and hasattr(args[0], func.__name__):
+            report = f"'{func.__name__}' of the '{args[0].__class__.__name__}' class took {str(round((perf_counter_ns()-start_time)/1000000000, ndigits=4))} seconds"
+        else:
+            report = f"'{func.__name__}' took {str(round((perf_counter_ns()-start_time)/1000000000, ndigits=4))} seconds"
+
+        print(report)
+        return _out
+
+    return _function_print_time
+
 
 def remove_unnecessary_lines(in_text: str, remove_filters: Iterable[Callable]):  # sourcery skip: list-comprehension
     _out = []
@@ -156,6 +172,7 @@ def find_in_content(start_dir, target_string: str, case_sensitive: bool = False,
                 except UnicodeDecodeError:
                     pass
     return find_in_content(pathmaker(start_dir, '../'), target_string, case_sensitive, search_context, to_return, in_loop + 1)
+
 
     # region[Main_Exec]
 if __name__ == '__main__':

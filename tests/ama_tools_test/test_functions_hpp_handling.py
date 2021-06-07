@@ -22,4 +22,5 @@ def test_write(functions_finder, written_functions_hpp):
     func_holder, base_folder = functions_finder
     assert readit(func_holder.functions_hpp_file) == ''
     func_holder.write()
+    writeit("f.hpp", readit(func_holder.functions_hpp_file))
     assert readit(func_holder.functions_hpp_file) == written_functions_hpp

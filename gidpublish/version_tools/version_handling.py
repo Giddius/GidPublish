@@ -16,10 +16,10 @@ import time
 import queue
 import platform
 import subprocess
-from enum import Enum, Flag, auto
+from enum import Enum, Flag, auto, unique
 from time import sleep
 from pprint import pprint, pformat
-from typing import Union, Iterable
+from typing import Union, Iterable, Union, Optional, List, Callable, Set, Tuple, Dict, Iterator, TYPE_CHECKING, Any
 from datetime import tzinfo, datetime, timezone, timedelta
 from functools import wraps, lru_cache, singledispatch, total_ordering, partial
 from contextlib import contextmanager
@@ -28,6 +28,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from collections.abc import Iterator
 from itertools import chain
 import psutil
+from packaging import version
 from xml import etree as et
 # * Third Party Imports -->
 
@@ -59,18 +60,21 @@ from lxml import etree, objectify
 # * Gid Imports -->
 
 import gidlogger as glog
-
+from pathlib import PurePath, Path
 
 # * Local Imports -->
 from gidpublish.utility.gidtools_functions import (readit, clearit, readbin, writeit, loadjson, pickleit, writebin, pathmaker, writejson,
                                                    dir_change, linereadit, get_pickled, ext_splitter, appendwriteit, create_folder, from_dict_to_file)
 
 from gidpublish.data.general_exclusions import GENERAL_FIXED_EXCLUDE_FOLDERS
-from gidpublish.utility.enums import SearchReturn, VersionParts, FileType
+from gidpublish.utility.enums import SearchReturn, VersionPart, FileType
 from gidpublish.utility.misc_functions import find_in_content, search_endswith, search_contains, search_startswith
+from gidpublish.utility.gidtools_functions import work_in
 from string import ascii_lowercase, ascii_uppercase, ascii_letters
-from gidpublish.utility.named_tuples import VersionItem, VersionHandleItem
-
+from gidpublish.utility.gidcmd_functions import base_folder_from_git
+from abc import ABC, ABCMeta, abstractmethod
+from glob import iglob
+from gidpublish.utility.misc_functions import debug_timing_print
 # endregion[Imports]
 
 # region [TODO]
@@ -96,137 +100,160 @@ THIS_FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 # endregion[Constants]
 
 
-class VersionManager:
-    VERSION_MAJOR = VersionParts.Major
-    VERSION_MINOR = VersionParts.Minor
-    VERSION_PATCH = VersionParts.Patch
+class VersionItem:
+    version_regex = re.compile(r"(?P<major>\d+)(?P<separator>.+)(?P<minor>\d+)(?P=separator)(?P<patch>\d+)")
 
-    def __init__(self, in_file_folder, identifier: str, is_next_line: bool = False, version_max: int = None):
-        self.handle_table = {FileType.Xml: VersionHandleItem(self._get_version_xml, self._write_version_xml),
-                             FileType.Text: VersionHandleItem(self._get_version_text, self._write_version_text),
-                             FileType.Python: VersionHandleItem(self._get_version_text, self._write_version_text),
-                             FileType.Markdown: VersionHandleItem(self._get_version_text, self._write_version_text)}
-        self.xml_settings = {'identifier_attribute': 'ID', 'version_tag': 'Original'}
-        self.file_or_folder = in_file_folder
-        self.file_type = FileType(None)
-        self.identifier = identifier
-        self.is_next_line = is_next_line
-        self.version_max = version_max
-        self.version_seperator = '.'
-        self.version_line = None
-        self.original_version = None
-        self.version = None
-        self.downstream_version_holder = []
-        self._check_in_file_folder()
+    def __init__(self, major: int, minor: int, patch: int, separator: str):
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+        self.separator = separator
+
+    @classmethod
+    def from_string(cls, version_string: str):
+        version_match = cls.version_regex.search(version_string.strip())
+
+        if version_match:
+            match_dict = version_match.groupdict()
+            for key, value in match_dict.items():
+                match_dict[key] = int(value) if value.isdigit() else value
+            return cls(**match_dict)
+        else:
+            raise version.InvalidVersion(version_string)
 
     @property
-    def version_regex(self):
-        return re.compile(r"(?P<major>\d+)" + "\\" + self.version_seperator + r"(?P<minor>\d+)" + "\\" + self.version_seperator + r"?(?P<patch>[\d+])?")
+    def parts(self):
+        return [self.major, self.minor, self.patch]
 
-    @lru_cache()
-    def xml_parsed_tree(self):
-        if self.file_type is not FileType.Xml:
-            raise TypeError
-        tree = etree.parse(self.file_or_folder, parser=etree.XMLParser())
-        root = tree.getroot()
-        return tree, root
+    def increment(self, inc_part: VersionPart):
+        for part in VersionPart:
+            if part is inc_part:
+                self.set(part, getattr(self, part.attr_name) + 1)
+            elif part < inc_part:
+                self.set(part, 0)
 
-    @lru_cache()
-    def text_lines(self):
-        if self.file_type not in [FileType.Text, FileType.Python, FileType.Markdown]:
-            raise TypeError
-        return readit(self.file_or_folder).splitlines()
+    def set(self, part: VersionPart, value):
+        if not isinstance(value, int):
+            value = int(value)
+        setattr(self, part.attr_name, value)
 
-    def _check_in_file_folder(self):
-        if os.path.isdir(self.file_or_folder):
-            self.file_or_folder = find_in_content(self.file_or_folder, self.identifier, False, search_contains, SearchReturn.File)
-            if self.file_or_folder is None:
-                raise FileNotFoundError
-            self.file_type = FileType(os.path.splitext(self.file_or_folder)[1])
-        elif os.path.isfile(self.file_or_folder):
-            self.file_type = FileType(os.path.splitext(self.file_or_folder)[1])
-        else:
-            raise TypeError
+    def __str__(self) -> str:
+        return self.separator.join(map(str, self.parts))
 
-    def increment(self, increment_type: VersionParts):
-        if self.version is None:
-            self.get_version()
-        max_value = self.version_max if self.version_max is not None else 999999999
-        if self.version.patch is None and increment_type is self.VERSION_PATCH:
-            new_version = self.version._replace(patch=1)
-        else:
-            new_version = self.version._replace(**{increment_type.name.casefold(): self.version[increment_type.value] + 1})
-            if increment_type is not self.VERSION_MAJOR and new_version[increment_type.value] >= max_value:
-                new_version = new_version._replace(**{increment_type.name.casefold(): 0})
-                next_part = VersionParts(increment_type.value - 1)
-                new_version = new_version._replace(**{next_part.name.casefold(): new_version[next_part.value] + 1})
-                if next_part is not self.VERSION_MAJOR and new_version[next_part.value] >= max_value:
-                    next_next_part = VersionParts(next_part.value - 1)
-                    new_version = new_version._replace(**{next_part.name.casefold(): 0, next_next_part.name.casefold(): new_version[next_next_part.value] + 1})
-        self.version = new_version
-        self.apply_downstream()
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(major={self.major}, minor={self.minor}, patch={self.patch}, separator={self.separator})"
 
-    def apply_downstream(self):
-        for downstream_holder in self.downstream_version_holder:
-            downstream_holder.version = self.version
-            downstream_holder.original_version = self.original_version
 
-    def write_downstream(self):
-        for downstream_holder in self.downstream_version_holder:
-            downstream_holder.write_version()
+class AbstractVersionHandler(ABC):
+    auto_write = True
 
-    def get_version(self):
-        string_result = self.handle_table.get(self.file_type).get_version()
-        regex_result = self.version_regex.search(string_result)
-        if regex_result:
-            version_parts = VersionItem(**{key: int(value) for key, value in regex_result.groupdict().items() if value is not None}, seperator=self.version_seperator)
-            self.version_line = string_result
-            self.original_version = version_parts
-            self.version = VersionItem(**version_parts._asdict())
-            self.apply_downstream()
-        return self.original_version
+    @classmethod
+    @property
+    @abstractmethod
+    def version_line_identifier(cls) -> str:
+        ...
 
-    def _get_version_text(self):
-        lines = self.text_lines()
-        for index, line in enumerate(lines):
-            if self.identifier.casefold() in line.casefold():
-                if self.is_next_line is True:
-                    line = lines[index + 1]
-                return line
+    @classmethod
+    @property
+    @abstractmethod
+    def version_replace_regex(cls) -> Tuple[re.Pattern, str]:
+        ...
 
-    def _get_version_xml(self):
-        tree, root = self.xml_parsed_tree()
-        for elem in root.getiterator():
-            if elem.attrib.get(self.xml_settings.get('identifier_attribute')) == self.identifier:
-                for child in elem.getchildren():
-                    if child.tag == self.xml_settings.get('version_tag'):
-                        return str(child.text)
+    @classmethod
+    @property
+    @abstractmethod
+    def quote_version(cls) -> bool:
+        ...
 
-    def _write_version_xml(self):
-        tree, root = self.xml_parsed_tree()
-        for elem in root.getiterator():
-            if elem.attrib.get(self.xml_settings.get('identifier_attribute')) == self.identifier:
-                for child in elem.getchildren():
-                    if child.tag == self.xml_settings.get('version_tag'):
-                        child.text = self.version.version_string
-        tree_str = etree.tostring(tree.getroot(), encoding='utf-8', pretty_print=True, xml_declaration=True)
-        writebin(self.file_or_folder, tree_str)
+    def __init__(self, base_folder: Union[str, os.PathLike], **kwargs):
+        self.base_folder = base_folder
+        self.version_file = self._find_version_file()
+        self.version_line = self._find_version_line()
+        self.version = self._extract_version()
 
-    def _write_version_text(self):
-        _new_lines = []
-        lines = self.text_lines()
-        for index, line in enumerate(lines):
-            if self.identifier.casefold() in line.casefold():
-                if self.is_next_line is True:
-                    line = lines[index + 1]
-                line = self.version_regex.sub(self.version.version_string, line)
-            _new_lines.append(line)
-        writeit(self.file_or_folder, '\n'.join(_new_lines))
+    @abstractmethod
+    def _find_version_file(self):
+        ...
 
-    def write_version(self, downstream=True):
-        self.handle_table.get(self.file_type).write_version()
-        if downstream is True:
-            self.write_downstream()
+    @abstractmethod
+    def _find_version_line(self):
+        ...
+
+    @abstractmethod
+    def _extract_version(self):
+        ...
+
+    def refresh(self):
+        self.version_file = self._find_version_file()
+        self.version_line = self._find_version_line()
+        self.version = self._extract_version()
+
+    def increment_version(self, increment_part: VersionPart):
+        self.version.increment(increment_part)
+        if self.auto_write is True:
+            self.write()
+
+    def write(self):
+        version_string = f'"{self.version}"' if self.quote_version is True else str(self.version)
+        new_content = self.version_replace_regex[0].sub(self.version_replace_regex[1].format(version_string), readit(self.version_file))
+        writeit(self.version_file, new_content)
+
+    def set(self, part: VersionPart, value):
+        self.version.set(part, value)
+        if self.auto_write is True:
+            self.write()
+
+
+class PythonFlitVersionHandler(AbstractVersionHandler):
+    version_line_identifier = '__version__'
+    quote_version = True
+    version_replace_regex = (re.compile(rf"(?P<identifier>{version_line_identifier})(?P<operator>\s?.\s?)(?P<version>.*)"), r"\g<identifier>\g<operator>{}")
+    default_venv_name = '.venv'
+    version_class = VersionItem
+
+    def __init__(self, base_folder: Union[str, os.PathLike], **kwargs):
+        self.venv_name = self.default_venv_name if kwargs.get('venv_name') is None else kwargs.get('venv_name')
+        super().__init__(base_folder)
+
+    def _find_version_file(self):
+        with work_in(self.base_folder):
+            for path in iglob('**/__init__.py', recursive=True):
+                path = os.path.abspath(path)
+                if self.venv_name not in path.casefold():
+                    content = readit(path)
+                    if self.version_line_identifier in content:
+                        return path
+
+    def _find_version_line(self):
+        with open(self.version_file, 'r') as f:
+            for line in f:
+                if self.version_line_identifier in line:
+                    return line.strip()
+
+    def _extract_version(self):
+        cleaned_version_line = self.version_line.removeprefix(self.version_line_identifier).replace('=', '').strip(r"\s\'\"\n")
+        return self.version_class.from_string(cleaned_version_line)
+
+
+class VersionManager:
+    MAJOR = VersionPart.MAJOR
+    MINOR = VersionPart.MINOR
+    PATCH = VersionPart.PATCH
+
+    version_handler = PythonFlitVersionHandler
+
+    def __init__(self, base_folder: Union[str, os.PathLike] = None):
+        self.base_folder = base_folder if base_folder is not None else base_folder_from_git()
+        self.version_handler = self.version_handler(self.base_folder)
+
+    def __getattr__(self, name):
+        if hasattr(self.version_handler, name):
+            return getattr(self.version_handler, name)
+        raise AttributeError(name)
+
+    @classmethod
+    def set_auto_write(cls, value: bool):
+        cls.version_handler.auto_write = value
 
 
         # region[Main_Exec]
