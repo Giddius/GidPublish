@@ -537,12 +537,19 @@ class ImportsCleaner(BaseTaskTooling):
             new_import_section = imports_section_match.group('startline') + '\n' + import_statements + '\n' + imports_section_match.group("endline")
             new_content = self.import_region_regex.sub(new_import_section, old_content)
             for modification_func, enabled in self.extra_modifications.items():
+                print(modification_func.__name__)
+                print(f"enabled: {enabled}")
+                print('________________')
                 if enabled is True:
                     new_content = modification_func(new_content)
             file_item.write(new_content)
 
     def apply_autoflake(self, content: str) -> str:
-        return autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
+        print("running autoflake")
+        _out = autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
+        d = difflib.Differ()
+        console.print(list(d.compare(content.splitlines(), _out.splitlines())))
+        return _out
 
     def apply_isort(self, content: str) -> str:
         return content
