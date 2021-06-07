@@ -557,7 +557,7 @@ class SettingsTypus(Enum):
 
 DEFAULT_SETTINGS = {
     "gidpublish": {
-        'general': {'concurrency': 'threads'},
+        'general': {'concurrency': None},
         'project': {
             'files_to_exclude': [],
             'folders_to_exclude': ['.venv', '.git', '.pytest_cache', '__pycache__', '.vscode', 'tests'],
@@ -696,11 +696,6 @@ if __name__ == '__main__':
 
     _root_path = r"D:\Dropbox\hobby\Modding\Programs\Github\My_Repos\GidPublish"
     x = ProjectData(_root_path)
-    dd = x.top_init_file
-    vers = dd.get_version()
-    print(vers)
-    vers.increment(vers.MAJOR_SECTION)
-    dd.replace_version()
-    vers = dd.get_version()
-    print(vers)
+    dd = ImportsCleaner(x)
+    dd.process_all()
 # endregion[Main_Exec]
