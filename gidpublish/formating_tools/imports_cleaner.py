@@ -79,7 +79,7 @@ from benedict import benedict
 from gidpublish.utility.misc import recursive_dir_tree
 from gidpublish.utility.general_decorators import debug_timing_print
 
-
+console = Console(soft_wrap=True)
 # endregion[Imports]
 
 # region [TODO]
@@ -202,6 +202,9 @@ class ProjectItemBase(os.PathLike):
     def created_at(self) -> datetime:
         return datetime.fromtimestamp(os.stat(self.path).st_ctime)
 
+    def is_in_folder(self, folder):
+        return self in folder.get_folder_content(recursive=True)
+
     def __fspath__(self) -> str:
         return str(self.path)
 
@@ -218,6 +221,7 @@ class ProjectItemBase(os.PathLike):
 class ProjectFileItemBase(ProjectItemBase):
     is_dir = False
     encoding = 'utf-8'
+    factory_use = True
 
     @classmethod
     @property
@@ -228,6 +232,7 @@ class ProjectFileItemBase(ProjectItemBase):
     def __init__(self, path: Union[os.PathLike, str]) -> None:
         super().__init__(path)
         self.extension = self.name.split('.')[-1]
+        self.last_file_hash = self.get_file_hash()
 
     @classmethod
     @abstractmethod
@@ -242,6 +247,14 @@ class ProjectFileItemBase(ProjectItemBase):
     def modifed_last_at(self) -> datetime:
         return datetime.fromtimestamp(os.stat(self.path).st_mtime)
 
+    def get_file_hash(self, store: bool = False):
+        with open(self.path, 'rb') as f:
+            bin_content = f.read()
+        file_hash = blake2b(bin_content).hexdigest()
+        if store is True:
+            self.last_file_hash = file_hash
+        return file_hash
+
     def get_content(self):
         with open(self.path, 'r', encoding=self.encoding, errors='ignore') as f:
             return f.read()
@@ -249,6 +262,99 @@ class ProjectFileItemBase(ProjectItemBase):
     def write(self, new_content):
         with open(self.path, 'w', encoding=self.encoding, errors='ignore') as f:
             f.write(new_content)
+
+
+class VersionItem:
+    class VersionSection(Enum):
+        MAJOR = auto()
+        MINOR = auto()
+        PATCH = auto()
+
+    MAJOR_SECTION = VersionSection.MAJOR
+    MINOR_SECTION = VersionSection.MINOR
+    PATCH_SECTON = VersionSection.PATCH
+
+    separator_char = '.'
+    from_string_regex = re.compile(rf"(?P<identifier>.*?)?(?P<quote>[\"\']?)(?P<version>[\d{separator_char}]+)(?P=quote)")
+
+    def __init__(self, major: int, minor: int, patch: int, identifier: str = None, quoted: bool = False, line_number: int = 0) -> None:
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+        self.identifier = identifier if identifier is not None else ""
+        self.quoted = quoted
+        self.line_number = line_number
+
+    @classmethod
+    def from_string(cls, version_string, line_number: int = None):
+        identifier, quote, version = cls.from_string_regex.search(version_string).groups()
+        quoted = quote != ''
+        major, minor, patch = map(int, version.strip().split(cls.separator_char))
+        return cls(major=major, minor=minor, patch=patch, identifier=identifier, quoted=quoted, line_number=line_number)
+
+    def increment(self, section: VersionSection, value: int = 1):
+        if section is self.MAJOR_SECTION:
+            self.major += value
+            self.minor = 0
+            self.patch = 0
+
+        elif section is self.MINOR_SECTION:
+            self.minor += 1
+            self.patch = 0
+
+        elif section is self.PATCH_SECTON:
+            self.patch += 1
+
+    def set_version(self, value: tuple):
+        if len(value) != 3:
+            raise ValueError("set_version value has to be a tuple of 3 integers")
+        self.major, self.minor, self.patch = value
+
+    def set_section(self, section: VersionSection, value: int):
+        setattr(self, section.name.casefold(), value)
+
+    def __str__(self):
+        quote = '"' if self.quoted else ''
+        version = self.separator_char.join(map(str, [self.major, self.minor, self.patch]))
+        version_line = f"{self.identifier}{quote}{version}{quote}"
+        return version_line
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(major={self.major}, minor={self.minor}, patch={self.patch}, identifier={self.identifier}, quoted={self.quoted}, line_number={self.line_number})"
+
+
+class PythonTopInitFile(ProjectFileItemBase):
+    factory_use = False
+    version_item = VersionItem
+
+    @classmethod
+    def check_if_type(cls, path: Union[os.PathLike, str]) -> bool:
+        return False
+
+    def __init__(self, path: Union[os.PathLike, str], version_identifier: str) -> None:
+        super().__init__(path)
+        self.version_identifier = version_identifier
+        self._version = None
+        self.get_version()
+
+    def get_version_line(self) -> Tuple[int, str]:
+        with open(self.path, 'r', encoding=self.encoding, errors='ignore') as f:
+            for line_number, line in enumerate(f):
+                cleaned_line = line.strip('\n')
+                if self.version_identifier in cleaned_line:
+                    return (line_number, cleaned_line)
+
+    def get_version(self):
+        if self.get_file_hash() != self.last_file_hash or self._version is None:
+            line_number, version_line = self.get_version_line()
+            version_item = self.version_item.from_string(version_line, line_number=line_number)
+            self._version = version_item
+        return self._version
+
+    def replace_version(self):
+        lines = self.get_content().splitlines()
+        lines[self._version.line_number] = str(self._version)
+        self.write('\n'.join(lines))
 
 
 class ProjectFolderItem(ProjectItemBase):
@@ -270,7 +376,7 @@ class ProjectFolderItem(ProjectItemBase):
                 folder_item = self.item_factory.get_item(item.path)
                 yield folder_item
                 if recursive is True:
-                    yield from folder_item.get_items(recursive=recursive)
+                    yield from folder_item.get_folder_content(recursive=recursive)
 
     def get_file(self, file_name: str, nullable: bool = False) -> ProjectFileItemBase:
         for item in self.get_folder_content(False):
@@ -348,13 +454,15 @@ class ProjectItemFactory(metaclass=ProjectFactoryMeta):
     folder_base_class = ProjectFolderItem
     default_file_item = DefaultFileItem
     _concrete_project_file_classes = None
+    top_init_file = None
 
     @classmethod
     def _get_subclasses_recursive(cls, klass):
         if klass.__subclasses__():
             for subklass in klass.__subclasses__():
-                yield from cls._get_subclasses_recursive(subklass)
-        if klass is not cls.file_base_class and klass is not cls.default_file_item:
+                if subklass.factory_use is True:
+                    yield from cls._get_subclasses_recursive(subklass)
+        if klass is not cls.file_base_class and klass.factory_use is True:
             yield klass
 
     @classmethod
@@ -403,8 +511,9 @@ class ImportsCleaner(BaseTaskTooling):
     def __init__(self, project) -> None:
         self.project = project
         self.import_region_name = self.project.settings.gidpublish.import_cleaner.import_region_name
-        self.run_isort = self.project.settings.gidpublish.import_cleaner.run_isort
-        self.run_autoflake = self.project.settings.gidpublish.import_cleaner.run_autoflake
+        self.extra_modifications = {self.project.settings.gidpublish.import_cleaner.use_autoflake: self.apply_autoflake,
+                                    self.project.settings.gidpublish.import_cleaner.use_isort: self.apply_isort,
+                                    self.project.settings.gidpublish.import_cleaner.use_autopep8: self.apply_autopep8}
 
     @cached_property
     def import_region_regex(self) -> re.Pattern:
@@ -427,7 +536,19 @@ class ImportsCleaner(BaseTaskTooling):
             import_statements = '\n'.join(line for line in imports_section_match.group('content').splitlines() if line != '' and not line.strip().startswith('#'))
             new_import_section = imports_section_match.group('startline') + '\n' + import_statements + '\n' + imports_section_match.group("endline")
             new_content = self.import_region_regex.sub(new_import_section, old_content)
+            for enabled, modification_func in self.extra_modifications.items():
+                if enabled is True:
+                    new_content = modification_func(new_content)
             file_item.write(new_content)
+
+    def apply_autoflake(self, content: str) -> str:
+        return autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
+
+    def apply_isort(self, content: str) -> str:
+        return content
+
+    def apply_autopep8(self, content: str) -> str:
+        return content
 
 
 class SettingsTypus(Enum):
@@ -440,13 +561,21 @@ DEFAULT_SETTINGS = {
         'project': {
             'files_to_exclude': [],
             'folders_to_exclude': ['.venv', '.git', '.pytest_cache', '__pycache__', '.vscode', 'tests'],
+            'version_identifier': '__version__ ='
         },
         'import_cleaner': {
             'import_region_name': "imports",
-            'run_isort': True,
-            'run_autoflake': True
+            'use_isort': True,
+            'use_autoflake': True,
+            'use_autopep8': True
         }
-    }
+    },
+    "autoflake": {"remove_all_unused_imports": True,
+                  "expand_star_imports": True,
+                  "ignore_init_module_imports": True,
+                  "additional_imports": None,
+                  "remove_duplicate_keys": False,
+                  "remove_unused_variables": False}
 }
 
 
@@ -520,7 +649,9 @@ class ProjectData:
     @property
     def top_init_file(self):
         path = pathmaker(self.top_module_folder, '__init__.py')
-        return self.file_factory.get_item(path)
+        if self.file_factory.top_init_file is None:
+            self.file_factory.top_init_file = PythonTopInitFile(path, self.settings.gidpublish.project.version_identifier)
+        return self.file_factory.top_init_file
 
     @property
     def files(self):
@@ -547,7 +678,7 @@ class ProjectData:
 
     def get_files_for(self, tooling_item: BaseTaskTooling):
         if isinstance(tooling_item, ImportsCleaner):
-            return (file for file in self.files if self.top_module_folder.path.casefold() in file.parent_folder.path.casefold() and isinstance(file, PythonFileItem))
+            return (file for file in self.files if file.is_in_folder(self.top_module_folder) and isinstance(file, PythonFileItem))
 
     def get_settings_copy(self):
         return NotImplemented
@@ -565,8 +696,11 @@ if __name__ == '__main__':
 
     _root_path = r"D:\Dropbox\hobby\Modding\Programs\Github\My_Repos\GidPublish"
     x = ProjectData(_root_path)
-    dd = ImportsCleaner(x)
-    dd.process_all()
-
-
+    dd = x.top_init_file
+    vers = dd.get_version()
+    print(vers)
+    vers.increment(vers.MAJOR_SECTION)
+    dd.replace_version()
+    vers = dd.get_version()
+    print(vers)
 # endregion[Main_Exec]

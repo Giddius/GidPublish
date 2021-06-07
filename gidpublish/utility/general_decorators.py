@@ -4,7 +4,7 @@
 from functools import wraps
 import os
 from time import time
-
+import inspect
 # endregion[Imports]
 
 
@@ -14,7 +14,7 @@ def debug_timing_print(func):
         start_time = time()
         _out = func(*args, **kwargs)
 
-        if len(args) != 0 and hasattr(args[0], func.__name__):
+        if len(args) != 0 or hasattr(args[0], func.__name__):
             report = f"'{func.__name__}' of the '{args[0].__class__.__name__}' class took {str(round(time()-start_time, ndigits=4))} seconds"
         else:
             report = f"'{func.__name__}' took {str(round(time()-start_time, ndigits=4))} seconds"
