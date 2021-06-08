@@ -520,13 +520,17 @@ class ImportsCleaner(BaseTaskTooling):
         pattern, re_enums = self.import_region_regex_pattern
         return re.compile(pattern.format(import_region_name=self.import_region_name), re_enums)
 
+    def get_files(self):
+        # TODO has to be a better way
+        return (file for file in self.project.files if file.is_in_folder(self.project.top_module_folder) and isinstance(file, PythonFileItem) and not isinstance(file, (PythonInitFileItem, PythonTopInitFile)))
+
     def process_all(self):
         if self.project.settings.gidpublish.general.concurrency is not None:
             executor = ThreadPoolExecutor if self.project.settings.gidpublish.general.concurrency.casefold() == "threads" else ProcessPoolExecutor
             with executor() as pool:
-                list(pool.map(self.process_file, self.project.get_files_for(self)))
+                list(pool.map(self.process_file, self.get_files_for()))
         else:
-            for file_item in self.project.get_files_for(self):
+            for file_item in self.get_files_for():
                 self.process_file(file_item)
 
     def process_file(self, file_item):
@@ -688,10 +692,6 @@ class ProjectData:
                     path = pathmaker(dirname, file)
                     yield self.file_factory.get_item(path)
 
-    def get_files_for(self, tooling_item: BaseTaskTooling):
-        if isinstance(tooling_item, ImportsCleaner):
-            return (file for file in self.files if file.is_in_folder(self.top_module_folder) and isinstance(file, PythonFileItem) and not isinstance(file, (PythonInitFileItem, PythonTopInitFile)))
-
     def get_settings_copy(self):
         return NotImplemented
 
@@ -705,9 +705,5 @@ class ProjectData:
 
 # region[Main_Exec]
 if __name__ == '__main__':
-
-    _root_path = r"D:\Dropbox\hobby\Modding\Programs\Github\My_Repos\GidPublish"
-    x = ProjectData(_root_path)
-    dd = ImportsCleaner(x)
-    dd.process_all()
+    pass
 # endregion[Main_Exec]
