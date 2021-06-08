@@ -542,13 +542,25 @@ class ImportsCleaner(BaseTaskTooling):
             file_item.write(new_content)
 
     def apply_autoflake(self, content: str) -> str:
-        return autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
+        try:
+            settings = self.project.settings.autoflake.data
+        except AttributeError:
+            settings = {}
+        return autoflake.fix_code(source=content, **settings)
 
     def apply_isort(self, content: str) -> str:
-        return isort.code(code=content, **self.project.settings.isort.data)
+        try:
+            settings = self.project.settings.isort.data
+        except AttributeError:
+            settings = {}
+        return isort.code(code=content, **settings)
 
     def apply_autopep8(self, content: str) -> str:
-        return content
+        try:
+            settings = self.project.settings.autopep8.data
+        except AttributeError:
+            settings = {}
+        return autopep8.fix_code(source=content, options=settings)
 
 
 class SettingsTypus(Enum):
