@@ -1,13 +1,13 @@
 [build-system]
-requires = ["flit_core >=2,<4"]
 build-backend = "flit_core.buildapi"
+requires = ["flit_core >=2,<4"]
 
 [tool.flit.metadata]
-module = "gidpublish"
 author = "BrocaProgs"
-home-page = "https://github.com/Giddius/GidPublish"
 classifiers = ["License :: OSI Approved :: MIT License"]
 description-file = "README.md"
+home-page = "https://github.com/Giddius/GidPublish"
+module = "gidpublish"
 requires = []
 
 [tool.flit.sdist]
@@ -19,25 +19,37 @@ exclude = []
 addopts = "-rP -vv --durations=0 --show-capture=all --color=auto --code-highlight=yes"
 
 [tool.gidvenv.base_venv_settings]
-system_site_packages = false
 clear = true
 symlinks = true
+system_site_packages = false
 with_pip = false
 # prompt=
 upgrade_deps = false
 
 [tool.gidvenv.settings]
-verbose = false
+extra_install_instructions = []
 manipulate_script = true
 pyclean_before = true
-extra_install_instructions = []
+verbose = false
 
 [tool.autopep8]
-max-line-length = 250
 ignore = ["E402", "E501"]
+max_line_length = 250
 
 [tool.isort]
+balanced_wrapping = true
+ensure_newline_before_comments = true
+group_by_package = true
+import_heading_firstparty = "* Local Imports --------------------------------------------------------------------------------------->"
+import_heading_gid = "* Gid Imports ----------------------------------------------------------------------------------------->"
+import_heading_pyqt = "* PyQt5 Imports --------------------------------------------------------------------------------------->"
+import_heading_stdlib = "* Standard Library Imports ---------------------------------------------------------------------------->"
+import_heading_thirdparty = "* Third Party Imports --------------------------------------------------------------------------------->"
+known_gid = ["gidtools", "gidlogger", "gidqtutils", "gidviewmodels"]
+known_pyqt = ["PyQt5"]
+length_sort = true
 line_length = 200
+lines_after_imports = 1
 sections = [
     "FUTURE",
     "STDLIB",
@@ -47,15 +59,3 @@ sections = [
     "FIRSTPARTY",
     "LOCALFOLDER",
 ]
-known_pyqt = ["PyQt5"]
-known_gid = ["gidtools", "gidlogger", "gidqtutils", "gidviewmodels"]
-import_heading_stdlib = "* Standard Library Imports ---------------------------------------------------------------------------->"
-import_heading_thirdparty = "* Third Party Imports --------------------------------------------------------------------------------->"
-import_heading_firstparty = "* Local Imports --------------------------------------------------------------------------------------->"
-import_heading_pyqt = "* PyQt5 Imports --------------------------------------------------------------------------------------->"
-import_heading_gid = "* Gid Imports ----------------------------------------------------------------------------------------->"
-ensure_newline_before_comments = true
-balanced_wrapping = true
-lines_after_imports = 1
-length_sort = true
-group_by_package = true
