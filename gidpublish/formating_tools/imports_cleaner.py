@@ -542,15 +542,10 @@ class ImportsCleaner(BaseTaskTooling):
             file_item.write(new_content)
 
     def apply_autoflake(self, content: str) -> str:
-        print("running autoflake")
-        console.print(self.project.settings.autoflake.data)
-        _out = autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
-        d = difflib.Differ()
-        console.print([l for l in d.compare(content.splitlines(), _out.splitlines()) if l.startswith('-')])
-        return _out
+        return autoflake.fix_code(source=content, **self.project.settings.autoflake.data)
 
     def apply_isort(self, content: str) -> str:
-        return content
+        return isort.code(code=content, **self.project.settings.isort.data)
 
     def apply_autopep8(self, content: str) -> str:
         return content
